@@ -1,0 +1,205 @@
+local cloneref = cloneref or function(Service) return Service; end
+
+local function GetService(Service)
+	return cloneref(game:GetService(Service))
+end
+
+local Players = GetService("Players")
+local RunService = GetService("RunService")
+
+local Elements = {}; do
+	function Elements:New(Class, Properties)
+		local Object = Instance.new(Class)
+		for Property, Value in Properties do
+			Object[Property] = Value
+		end
+		return Object
+	end
+end
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = (RunService:IsStudio() and LocalPlayer.PlayerGui) or GetService("CoreGui")
+local GothamFont = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+
+local Loader = {}
+Loader.SELECTED = ""
+
+do
+	local LoaderUI = Elements:New("ScreenGui", {
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = PlayerGui
+	})
+
+	local Holder = Elements:New("Frame", {
+		BorderSizePixel = 0,
+		BackgroundColor3 = Color3.fromRGB(16, 16, 16),
+		Size = UDim2.new(0.271032, 0, 0.445187, 0),
+		Position = UDim2.new(0.364177, 0, 0.27664, 0),
+		Parent = LoaderUI
+	}); do
+		local Bottom = Elements:New("Frame", {
+			BorderSizePixel = 0,
+			BackgroundColor3 = Color3.fromRGB(22, 22, 22),
+			Size = UDim2.new(1, 0, 0.119911, 0),
+			Position = UDim2.new(0, 0, 0.878709, 0),
+			Parent = Holder
+		})
+
+		local UIStroke_4 = Elements:New("UIStroke", { Color = Color3.fromRGB(45, 45, 45), Parent = Bottom })
+		local UICorner_4 = Elements:New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Bottom })
+
+		local LoadButton = Elements:New("TextButton", {
+			TextWrapped = true,
+			AutoButtonColor = false,
+			TextScaled = true,
+			BackgroundColor3 = Color3.fromRGB(24, 24, 24),
+			FontFace = GothamFont,
+			TextSize = 14,
+			Size = UDim2.new(0.366775, 0, 0.725145, 0),
+			Position = UDim2.new(0.614016, 0, 0.124863, 0),
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			Text = "Load",
+			Parent = Bottom
+		}); do
+			local UICorner_3 = Elements:New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = LoadButton })
+			local UIStroke_3 = Elements:New("UIStroke", { Color = Color3.fromRGB(45, 45, 45), ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = LoadButton })
+
+			LoadButton.MouseButton1Click:Connect(function()
+				if Loader.SELECTED == "" then return end
+
+				if Loader.SELECTED == "Aimbot" then
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/tunbridgeaaron14-star/silentware/refs/heads/main/Cease%20n%20desist"))()
+				elseif Loader.SELECTED == "Silent" then
+					loadstring(game:HttpGet("https://raw.githubusercontent.com/tunbridgeaaron14-star/silentware/refs/heads/main/Cease%20n%20desist%20silent%20aim"))()
+				end
+
+			end)
+		end
+
+		local LastUpdate = Elements:New("TextLabel", {
+			TextWrapped = true,
+			TextScaled = true,
+			BackgroundColor3 = Color3.fromRGB(24, 24, 24),
+			FontFace = GothamFont,
+			Position = UDim2.new(0.0247809, 0, 0.124863, 0),
+			TextSize = 14,
+			Size = UDim2.new(0.565022, 0, 0.725144, 0),
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			Text = "Updated: Reselect to refresh.",
+			Parent = Bottom
+		}); do
+			local UICorner_5 = Elements:New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = LastUpdate })
+			local UIStroke_5 = Elements:New("UIStroke", { Color = Color3.fromRGB(45, 45, 45), ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = LastUpdate })
+		end
+
+		local ScrollingFrame = Elements:New("ScrollingFrame", {
+			BorderSizePixel = 0,
+			MidImage = "rbxassetid://132155326",
+			TopImage = "",
+			Position = UDim2.new(-0.00295157, 0, 0.127748, 0),
+			BackgroundTransparency = 1,
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			Active = true,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			Size = UDim2.new(1.00295, 0, 0.75096, 0),
+			ScrollBarImageColor3 = Color3.fromRGB(31, 31, 31),
+			ScrollBarThickness = 8,
+			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+			BottomImage = "rbxassetid://0",
+			Parent = Holder
+		}); do
+			local UIPadding = Elements:New("UIPadding", { PaddingTop = UDim.new(0, 15), Parent = ScrollingFrame })
+			local UIGridLayout = Elements:New("UIGridLayout", {
+				CellSize = UDim2.new(0.9, 0, 0.15, 0),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				Parent = ScrollingFrame
+			})
+
+			for _, Name in ipairs({"Silent", "Aimbot", "Mobile soon...", "Universal soon..."}) do
+				local Template = Elements:New("Frame", {
+					BorderSizePixel = 0,
+					BackgroundColor3 = Color3.fromRGB(24, 24, 24),
+					Size = UDim2.new(0.0746269, 0, 0.118483, 0),
+					Parent = ScrollingFrame
+				}); do
+					local UIStroke_2 = Elements:New("UIStroke", { Color = Color3.fromRGB(45, 45, 45), Parent = Template })
+					local UICorner_2 = Elements:New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Template })
+
+					local TextButton = Elements:New("TextButton", {
+						TextWrapped = true,
+						TextScaled = true,
+						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+						FontFace = GothamFont,
+						TextSize = 14,
+						Size = UDim2.new(1, 0, 1, 0),
+						TextColor3 = Color3.fromRGB(255, 255, 255),
+						Text = "Select " .. Name,
+						BackgroundTransparency = 1,
+						Parent = Template
+					})
+
+					TextButton.MouseButton1Click:Connect(function()
+						Loader.SELECTED = Name
+						LastUpdate.Text = "Updated: Reselect to refresh."
+					end)
+				end
+			end
+		end
+	end
+
+	local UIStroke = Elements:New("UIStroke", { Color = Color3.fromRGB(45, 45, 45), Parent = Holder })
+	local Top = Elements:New("Frame", {
+		BorderSizePixel = 0,
+		BackgroundColor3 = Color3.fromRGB(22, 22, 22),
+		Size = UDim2.new(1, 0, 0.127896, 0),
+		Position = UDim2.new(0, 0, 0, 0),
+		BorderColor3 = Color3.fromRGB(0, 0, 0),
+		Parent = Holder
+	}); do
+		local Title = Elements:New("TextLabel", {
+			Text = "Cease n desist",
+			TextWrapped = true,
+			BorderSizePixel = 0,
+			TextScaled = true,
+			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+			FontFace = GothamFont,
+			TextSize = 14,
+			Size = UDim2.new(1, 0, 1, 0),
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BackgroundTransparency = 1,
+			Parent = Top
+		}); do
+			local UIGradient = Elements:New("UIGradient", {
+				Color = ColorSequence.new{
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 102)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(204, 204, 0))
+				},
+				Parent = Title
+			})
+		end
+
+		local UIDragDetector = Elements:New("UIDragDetector", { BoundingUI = LoaderUI, ReferenceUIInstance = Top, Parent = Holder })
+		local UICorner = Elements:New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Top })
+		local UIStroke_1 = Elements:New("UIStroke", { Color = Color3.fromRGB(45, 45, 45), Parent = Top })
+
+		local CloseButton = Elements:New("TextButton", {
+			Text = "X",
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			TextScaled = true,
+			BackgroundColor3 = Color3.fromRGB(24, 24, 24),
+			Size = UDim2.new(0.1, 0, 1, 0),
+			Position = UDim2.new(0.9, 0, 0, 0),
+			FontFace = GothamFont,
+			Parent = Top
+		}); do
+			local UICorner_Close = Elements:New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = CloseButton })
+			CloseButton.MouseButton1Click:Connect(function()
+				LoaderUI:Destroy()
+			end)
+		end
+	end
+
+	local UICorner_1 = Elements:New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Holder })
+end
