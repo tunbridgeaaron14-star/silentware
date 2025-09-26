@@ -4250,7 +4250,7 @@ Utility.AddConnection(UserInput.InputBegan, function(Input, Useless)
     if Useless then
         return
     end
-    if Input.KeyCode == Enum.KeyCode.Insert then
+    if Input.KeyCode == Key = Enum.KeyCode.RightControl
         Library:ChangeVisible(not Library.WindowVisible)
     end
 end)
