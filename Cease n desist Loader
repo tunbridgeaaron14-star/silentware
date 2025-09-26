@@ -71,6 +71,8 @@ do
                     loadstring(game:HttpGet("https://raw.githubusercontent.com/tunbridgeaaron14-star/silentware/refs/heads/main/Cease%20n%20desist"))()
 				elseif Loader.SELECTED == "Silent" then
 					loadstring(game:HttpGet("https://raw.githubusercontent.com/tunbridgeaaron14-star/silentware/refs/heads/main/Cease%20n%20desist%20silent%20aim"))()
+                elseif Loader.SELECTED == "Rewrite" then
+					loadstring(game:HttpGet("https://raw.githubusercontent.com/tunbridgeaaron14-star/silentware/refs/heads/main/rewrite"))()
 				end
 
 			end)
@@ -116,7 +118,7 @@ do
 				Parent = ScrollingFrame
 			})
 
-			for _, Name in ipairs({"Silent", "Aimbot", "Mobile soon...", "Universal soon..."}) do
+			for _, Name in ipairs({"Silent", "Aimbot", "Rewrite", "Mobile soon...", "Universal soon..."}) do
 				local Template = Elements:New("Frame", {
 					BorderSizePixel = 0,
 					BackgroundColor3 = Color3.fromRGB(24, 24, 24),
