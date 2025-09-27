@@ -118,7 +118,7 @@ do
 				Parent = ScrollingFrame
 			})
 
-			for _, Name in ipairs({"Silent", "Aimbot", "Rewrite", "Mobile soon...", "Universal soon..."}) do
+			for _, Name in ipairs({"Silent", "Aimbot", "Rewrite"}) do
 				local Template = Elements:New("Frame", {
 					BorderSizePixel = 0,
 					BackgroundColor3 = Color3.fromRGB(24, 24, 24),
