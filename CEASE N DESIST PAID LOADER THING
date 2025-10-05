@@ -1,10 +1,4 @@
---[[
-Octohook ui lib informant version
-Developed by liam#4567
-Edited by xz#1111
-]]
 
--- // Load
 
 local startupArgs = ({...})[1] or {}
 
@@ -4622,7 +4616,6 @@ function library:CreateSettingsTab(menu)
     local creditsSection = settingsTab:AddSection('Credits', 2);
     creditsSection:AddSeparator({text = 'Owners/Developers'});
     creditsSection:AddText({text = "@ZEN"})
-    creditsSection:AddText({text = "@kuqxip"})
 
 
     configSection:AddBox({text = 'Config Name', flag = 'configinput'})
