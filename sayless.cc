@@ -103,7 +103,7 @@ library.themes = {
         }
     },
     {
-        name = 'Informant_V1',
+        name = 'Sayless.cc',
         theme = {
             ['Accent']                    = fromrgb(103,89,179);
             ['Background']                = fromrgb(22,22,31);
@@ -124,8 +124,8 @@ library.themes = {
             ['Option Border 1']           = fromrgb(50,50,50);
             ['Option Border 2']           = fromrgb(0,0,0);
             ['Option Background']         = fromrgb(24,25,37);
-            ["Risky Text"]                = fromrgb(175, 21, 21);
-            ["Risky Text Enabled"]        = fromrgb(255, 41, 41);
+            ["Risky Text"]                = fromrgb(0,255,255);
+            ["Risky Text Enabled"]        = fromrgb(0,255,255);
         }
     },
     {
