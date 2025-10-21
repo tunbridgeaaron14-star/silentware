@@ -105,27 +105,28 @@ library.themes = {
     {
         name = 'LithuimWare',
         theme = {
-            ['Accent']                    = fromrgb(103,89,179);
-            ['Background']                = fromrgb(22,22,31);
-            ['Border']                    = fromrgb(0,0,0);
-            ['Border 1']                  = fromrgb(50,50,50);
-            ['Border 2']                  = fromrgb(24,25,37);
-            ['Border 3']                  = fromrgb(10,10,10);
-            ['Primary Text']              = fromrgb(235,235,235);
-            ['Group Background']          = fromrgb(24,25,37);
-            ['Selected Tab Background']   = fromrgb(24,25,37);
-            ['Unselected Tab Background'] = fromrgb(22,22,31);
-            ['Selected Tab Text']         = fromrgb(245,245,245);
-            ['Unselected Tab Text']       = fromrgb(145,145,145);
-            ['Section Background']        = fromrgb(22,22,31);
-            ['Option Text 1']             = fromrgb(245,245,245);
-            ['Option Text 2']             = fromrgb(195,195,195);
-            ['Option Text 3']             = fromrgb(145,145,145);
-            ['Option Border 1']           = fromrgb(50,50,50);
-            ['Option Border 2']           = fromrgb(0,0,0);
-            ['Option Background']         = fromrgb(24,25,37);
-            ["Risky Text"]                = fromrgb(0,255,255);
-            ["Risky Text Enabled"]        = fromrgb(0,255,255);
+['Accent']                    = fromrgb(80,80,80);
+['Background']                = fromrgb(15,15,15);
+['Border']                    = fromrgb(0,0,0);
+['Border 1']                  = fromrgb(40,40,40);
+['Border 2']                  = fromrgb(25,25,25);
+['Border 3']                  = fromrgb(10,10,10);
+['Primary Text']              = fromrgb(230,230,230);
+['Group Background']          = fromrgb(20,20,20);
+['Selected Tab Background']   = fromrgb(25,25,25);
+['Unselected Tab Background'] = fromrgb(15,15,15);
+['Selected Tab Text']         = fromrgb(240,240,240);
+['Unselected Tab Text']       = fromrgb(150,150,150);
+['Section Background']        = fromrgb(18,18,18);
+['Option Text 1']             = fromrgb(235,235,235);
+['Option Text 2']             = fromrgb(190,190,190);
+['Option Text 3']             = fromrgb(130,130,130);
+['Option Border 1']           = fromrgb(45,45,45);
+['Option Border 2']           = fromrgb(5,5,5);
+['Option Background']         = fromrgb(20,20,20);
+['Risky Text']                = fromrgb(255,255,255);
+['Risky Text Enabled']        = fromrgb(255,255,255);
+
         }
     },
     {
