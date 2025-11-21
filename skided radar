@@ -1,3 +1,22 @@
+_G.RadarEnabled = false -- set this to false to disable
+
+VisualsSections.Sectionrad:AddToggle({
+      enabled = true,
+      text = "Radar",
+      flag = "RadarToggle",
+      tooltip = "Press + for more dist and - for less and also DOESNT TOGGLE OFF AND hold to move",
+      callback = function(value)
+         _G.RadarEnabled = value
+    end
+})
+
+-- Hook the radar load with toggle
+spawn(function()
+    while not _G.RadarEnabled do
+        wait(0.1)
+    end
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/tunbridgeaaron14-star/silentware/refs/heads/main/skided%20radar'))()
+end)
 
 local scriptver = 'v1.3.2'
 
@@ -1515,7 +1534,7 @@ do
         local lText = radarObjects.loadText
         if ( lText.Visible ) then 
             local origText = lText.Text
-            local message = '\n\nIf this menu doesn\'t go away\neven after you spawn, \nyour game is likely \nunsupported '
+            local message = 'LOAD IN THE GAME U NIGGER'
             
             tweenQuad({ Delta = 0 }, 'Delta', #message, 1.5, function(delta) 
                 lText.Text = origText .. message:sub(1, delta)
