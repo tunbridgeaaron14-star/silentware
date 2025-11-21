@@ -1,23 +1,6 @@
-_G.RadarEnabled = false -- set this to false to disable
-
-VisualsSections.Sectionrad:AddToggle({
-      enabled = true,
-      text = "Radar",
-      flag = "RadarToggle",
-      tooltip = "Press + for more dist and - for less and also DOESNT TOGGLE OFF AND hold to move",
-      callback = function(value)
-         _G.RadarEnabled = value
-    end
-})
-
--- Hook the radar load with toggle
-spawn(function()
-    while not _G.RadarEnabled do
-        wait(0.1)
-    end
-    loadstring(game:HttpGet('https://raw.githubusercontent.com/tunbridgeaaron14-star/silentware/refs/heads/main/skided%20radar'))()
-end)
-
+--- Drawing Player Radar
+--- Made by topit
+--- Nov 28 2022
 local scriptver = 'v1.3.2'
 
 if ( _G.RadarKill ) then
@@ -599,7 +582,7 @@ radarObjects.loadText = newDrawObj('Text', {
     Outline = true;
     Position = radarPosition - newV2(0, 15);
     Size = 20;
-    Text = 'Waiting for you to spawn in...';
+    Text = 'SPWANN INNN';
     Transparency = 1;
     Visible = clientRoot == nil;
     ZIndex = 320;
@@ -1534,7 +1517,7 @@ do
         local lText = radarObjects.loadText
         if ( lText.Visible ) then 
             local origText = lText.Text
-            local message = 'LOAD IN THE GAME U NIGGER'
+            local message = '\n\nSPAWNNNN INN\nNIGGER \n '
             
             tweenQuad({ Delta = 0 }, 'Delta', #message, 1.5, function(delta) 
                 lText.Text = origText .. message:sub(1, delta)
