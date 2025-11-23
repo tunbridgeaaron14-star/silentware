@@ -106,27 +106,26 @@ library.themes = {
         name = 'ooze.cc',
         theme = {
             ["Accent"]                    = fromrgb(220, 20, 60);
-            ["Background"]                = fromrgb(255, 182, 193);
+            ["Background"]                = fromrgb(10, 50, 10);
             ["Border"]                    = fromrgb(0, 0, 0);
-            ["Border 1"]                  = fromrgb(220, 105, 130);
-            ["Border 2"]                  = fromrgb(245, 160, 170);
-            ["Border 3"]                  = fromrgb(200, 100, 120);
-            ["Primary Text"]              = fromrgb(255, 255, 255);
-            ["Group Background"]          = fromrgb(255, 192, 203);
-            ["Selected Tab Background"]   = fromrgb(255, 105, 180);
-            ["Unselected Tab Background"] = fromrgb(255, 182, 193);
-            ["Selected Tab Text"]         = fromrgb(255, 245, 245);
-            ["Unselected Tab Text"]       = fromrgb(200, 180, 180);
-            ["Section Background"]        = fromrgb(255, 175, 185);
+            ["Border 1"]                  = fromrgb(80, 30, 20);
+            ["Border 2"]                  = fromrgb(20, 40, 10);
+            ["Border 3"]                  = fromrgb(15, 15, 15);
+            ["Primary Text"]              = fromrgb(255, 250, 240);
+            ["Group Background"]          = fromrgb(15, 40, 15);
+            ["Selected Tab Background"]   = fromrgb(30, 60, 20);
+            ["Unselected Tab Background"] = fromrgb(20, 40, 10);
+            ["Selected Tab Text"]         = fromrgb(255, 245, 220);
+            ["Unselected Tab Text"]       = fromrgb(200, 200, 200);
+            ["Section Background"]        = fromrgb(25, 50, 25);
             ["Option Text 1"]             = fromrgb(255, 255, 255);
             ["Option Text 2"]             = fromrgb(255, 255, 255);
             ["Option Text 3"]             = fromrgb(255, 255, 255);
-            ["Option Border 1"]           = fromrgb(255, 105, 180);
-            ["Option Border 2"]           = fromrgb(255, 160, 180);
-            ["Option Background"]         = fromrgb(255, 182, 193);
+            ["Option Border 1"]           = fromrgb(150, 0, 0);
+            ["Option Border 2"]           = fromrgb(0, 50, 0);
+            ["Option Background"]         = fromrgb(40, 80, 30);
             ["Risky Text"]                = fromrgb(180, 0, 0);
             ["Risky Text Enabled"]        = fromrgb(255, 0, 0);
-
 
         }
     },
