@@ -105,28 +105,28 @@ library.themes = {
     {
         name = 'ooze.cc',
         theme = {
-            ['Accent']                    = fromrgb(147,184,26);
-            ['Background']                = fromrgb(17,17,17);
-            ['Border']                    = fromrgb(0,0,0);
-            ['Border 1']                  = fromrgb(47,47,47);
-            ['Border 2']                  = fromrgb(17,17,17);
-            ['Border 3']                  = fromrgb(10,10,10);
-            ['Primary Text']              = fromrgb(235,235,235);
-            ['Group Background']          = fromrgb(17,17,17);
-            ['Selected Tab Background']   = fromrgb(17,17,17);
-            ['Unselected Tab Background'] = fromrgb(17,17,17);
-            ['Selected Tab Text']         = fromrgb(245,245,245);
-            ['Unselected Tab Text']       = fromrgb(145,145,145);
-            ['Section Background']        = fromrgb(17,17,17);
-            ['Option Text 1']             = fromrgb(245,245,245);
-            ['Option Text 2']             = fromrgb(195,195,195);
-            ['Option Text 3']             = fromrgb(145,145,145);
-            ['Option Border 1']           = fromrgb(47,47,47);
-            ['Option Border 2']           = fromrgb(0,0,0);
-            ['Option Background']         = fromrgb(35,35,35);
-            ["Risky Text"]                = fromrgb(175, 21, 21);
-            ["Risky Text Enabled"]        = fromrgb(255, 41, 41);
-        }
+                        ["Accent"]                    = fromrgb(220, 20, 60);
+            ["Background"]                = fromrgb(10, 50, 10);
+            ["Border"]                    = fromrgb(0, 0, 0);
+            ["Border 1"]                  = fromrgb(80, 30, 20);
+            ["Border 2"]                  = fromrgb(20, 40, 10);
+            ["Border 3"]                  = fromrgb(15, 15, 15);
+            ["Primary Text"]              = fromrgb(255, 250, 240);
+            ["Group Background"]          = fromrgb(15, 40, 15);
+            ["Selected Tab Background"]   = fromrgb(30, 60, 20);
+            ["Unselected Tab Background"] = fromrgb(20, 40, 10);
+            ["Selected Tab Text"]         = fromrgb(255, 245, 220);
+            ["Unselected Tab Text"]       = fromrgb(200, 200, 200);
+            ["Section Background"]        = fromrgb(25, 50, 25);
+            ["Option Text 1"]             = fromrgb(255, 255, 255);
+            ["Option Text 2"]             = fromrgb(255, 255, 255);
+            ["Option Text 3"]             = fromrgb(255, 255, 255);
+            ["Option Border 1"]           = fromrgb(150, 0, 0);
+            ["Option Border 2"]           = fromrgb(0, 50, 0);
+            ["Option Background"]         = fromrgb(40, 80, 30);
+            ["Risky Text"]                = fromrgb(180, 0, 0);
+            ["Risky Text Enabled"]        = fromrgb(255, 0, 0);
+      }
     },
     {
         name = 'Fatality',
@@ -4490,7 +4490,7 @@ function library:init()
         self.watermark = {
             objects = {};
             text = {
-                {"Clon.Hub", true},
+                {"ooze.cc", true},
                 {"V"..getgenv().Config.Version, true},
                 {getgenv().luaguardvars.DiscordName, true},
                 {'0 fps', true},
