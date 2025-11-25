@@ -1,0 +1,4178 @@
+getgenv().Config = {
+	Invite = "https://discord.gg/AeMbXpuM2v",
+	Version = "1.0",
+}
+
+getgenv().luaguardvars = {
+	DiscordName = "Yo wsg Black user",
+}
+
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/tunbridgeaaron14-star/silentware/refs/heads/main/Ooze.cc%20rivvals"))()
+
+library:init()
+
+local Window = library.NewWindow({
+	title = "Ooze.cc",
+	size = UDim2.new(0, 525, 0, 650)
+})
+
+local tabs = {
+    Tab1 = Window:AddTab("General"),
+    Tab2 = Window:AddTab("Visuals"),
+    Tab4 = Window:AddTab("Rage"),
+    Tab5 = Window:AddTab("Viewmodels"),
+    Tab7 = Window:AddTab("Lighting"),
+    Settings = library:CreateSettingsTab(Window),
+}
+
+local GeneralSections = {
+	General1 = tabs.Tab1:AddSection("Silent aim", 1),
+	General2 = tabs.Tab1:AddSection("Mouse Aim", 2),
+	Generalhitsounds = tabs.Tab1:AddSection("Hit sounds", 1)
+
+}
+
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local hitSoundEnabled = false
+local selectedHitSound = "Cinematic"
+local hitSoundVolume = 5
+local currentSound
+local hitSounds = {
+	Cinematic = "rbxassetid://77123691930844",
+	Fatality = "rbxassetid://106299430307590",
+	["Skeet.cc"] = "rbxassetid://83717596220569"
+}
+
+GeneralSections.Generalhitsounds:AddToggle({
+	enabled = true,
+	tooltip = "Buggy",
+	text = "HitSound",
+	flag = "HitSound",
+	callback = function(v)
+		hitSoundEnabled = v
+	end
+})
+
+GeneralSections.Generalhitsounds:AddList({
+	enabled = true,
+	text = "HitSound Type",
+	flag = "HitSoundType",
+	multi = false,
+	values = {"Cinematic","Fatality","Skeet.cc"},
+	value = "Cinematic",
+	callback = function(v)
+		selectedHitSound = v
+	end
+})
+
+GeneralSections.Generalhitsounds:AddSlider({
+	text = "HitSound Volume",
+	flag = "HitSoundVolume",
+	suffix = "",
+	value = 5,
+	min = 1,
+	max = 10,
+	increment = 1,
+	risky = false,
+	callback = function(v)
+		hitSoundVolume = v
+	end
+})
+
+local function playHitSound()
+	if not hitSoundEnabled then return end
+	if currentSound then
+		currentSound:Stop()
+		currentSound:Destroy()
+	end
+	local s = Instance.new("Sound")
+	s.SoundId = hitSounds[selectedHitSound]
+	s.Volume = hitSoundVolume
+	s.Parent = workspace
+	s:Play()
+	currentSound = s
+	game.Debris:AddItem(s, 2)
+end
+
+RunService.Heartbeat:Connect(function()
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") then
+			local hum = player.Character.Humanoid
+			if not hum:GetAttribute("PrevHealth") then
+				hum:SetAttribute("PrevHealth", hum.Health)
+			else
+				local prev = hum:GetAttribute("PrevHealth")
+				if hum.Health < prev then
+					playHitSound()
+				end
+				hum:SetAttribute("PrevHealth", hum.Health)
+			end
+		end
+	end
+end)
+
+--
+
+--
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local AimPart = "Head"
+local AimbotEnabled = false
+local UseFOV = false
+local VisualizeFOV = false
+local WallCheckEnabled = false
+local HealthCheckEnabled = false
+local FOV = 60
+local Smoothness = 1
+local AimbotKeyCode = Enum.UserInputType.MouseButton2
+local FOVColor = Color3.fromRGB(255, 255, 255)
+local RainbowFovEnabled = false
+local hue = 0
+
+local screenSize = Camera.ViewportSize
+local screenCenter = Vector2.new(screenSize.X / 2, screenSize.Y / 2)
+
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Radius = FOV
+FOVCircle.Position = screenCenter
+FOVCircle.Color = FOVColor
+FOVCircle.Thickness = 1
+FOVCircle.Transparency = 1
+FOVCircle.Filled = false
+FOVCircle.Visible = false
+
+local HoldingKey = false
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.UserInputType == AimbotKeyCode or input.KeyCode == AimbotKeyCode then
+		HoldingKey = true
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == AimbotKeyCode or input.KeyCode == AimbotKeyCode then
+		HoldingKey = false
+	end
+end)
+
+local function isTargetValid(player)
+	if not player or not player.Character then return false end
+	if HealthCheckEnabled then
+		local humanoid = player.Character:FindFirstChild("Humanoid")
+		if not humanoid or humanoid.Health <= 0 then return false end
+	end
+	local part = player.Character:FindFirstChild(AimPart)
+	if not part then return false end
+	if WallCheckEnabled then
+		local origin = Camera.CFrame.Position
+		local dir = (part.Position - origin)
+		local ray = Ray.new(origin, dir.Unit * 500)
+		local hit = workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character}, false, true)
+		if hit and not hit:IsDescendantOf(player.Character) then
+			return false
+		end
+	end
+	return true
+end
+
+local function getClosestPlayer()
+	local closestPlayer = nil
+	local closestScreenPos = nil
+	local shortest = math.huge
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and isTargetValid(player) then
+			local targetPart = player.Character:FindFirstChild(AimPart)
+			if targetPart then
+				local screenPos3, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+				if onScreen then
+					local screenPos = Vector2.new(screenPos3.X, screenPos3.Y)
+					local dist = (screenCenter - screenPos).Magnitude
+					if (not UseFOV or dist <= FOV) and dist < shortest then
+						shortest = dist
+						closestPlayer = player
+						closestScreenPos = screenPos
+					end
+				end
+			end
+		end
+	end
+	return closestPlayer, closestScreenPos
+end
+
+RunService.RenderStepped:Connect(function()
+	screenSize = Camera.ViewportSize
+	screenCenter = Vector2.new(screenSize.X / 2, screenSize.Y / 2)
+	FOVCircle.Position = screenCenter
+	FOVCircle.Radius = FOV
+	if RainbowFovEnabled then
+		hue = (hue + 0.005) % 1
+		FOVCircle.Color = Color3.fromHSV(hue, 1, 1)
+	else
+		FOVCircle.Color = FOVColor
+	end
+	FOVCircle.Visible = VisualizeFOV
+
+	if AimbotEnabled and HoldingKey then
+		local player, screenPos = getClosestPlayer()
+		if player and screenPos then
+			local dx = (screenPos.X - screenCenter.X) / Smoothness
+			local dy = (screenPos.Y - screenCenter.Y) / Smoothness
+			if dx ~= 0 or dy ~= 0 then
+				pcall(function() mousemoverel(dx, dy) end)
+			end
+		end
+	end
+end)
+
+GeneralSections.General2:AddToggle({
+	enabled = true,
+	text = "Mouse aim",
+	flag = "SilentAim",
+	risky = false,
+	callback = function(value)
+		AimbotEnabled = value
+	end
+})
+
+GeneralSections.General2:AddToggle({
+	enabled = true,
+	text = "Draw Fov",
+	flag = "DrawFov",
+	risky = false,
+	callback = function(value)
+		VisualizeFOV = value
+	end
+})
+
+GeneralSections.General2:AddToggle({
+	enabled = true,
+	text = "Use Fov",
+	flag = "Toggle_1",
+	risky = false,
+	callback = function(value)
+		UseFOV = value
+	end
+})
+
+GeneralSections.General2:AddSlider({
+	text = "Fov Size",
+	flag = "FoVsize",
+	value = 60,
+	min = 1,
+	max = 999,
+	increment = 1,
+	risky = false,
+	callback = function(value)
+		FOV = value
+	end
+})
+
+GeneralSections.General2:AddToggle({
+	enabled = true,
+	text = "Wallcheck",
+	flag = "Wallcheck",
+	risky = false,
+	callback = function(value)
+		WallCheckEnabled = value
+	end
+})
+
+GeneralSections.General2:AddToggle({
+	enabled = true,
+	text = "Health Check",
+	flag = "Healthcheck",
+	risky = false,
+	callback = function(value)
+		HealthCheckEnabled = value
+	end
+})
+
+GeneralSections.General2:AddToggle({
+	enabled = true,
+	text = "Rainbow Fov",
+	flag = "RainbowFov",
+	risky = true,
+	callback = function(value)
+		RainbowFovEnabled = value
+	end
+})
+
+GeneralSections.General2:AddBind({
+	text = "AimBot KEY",
+	flag = "Aimbkey",
+	nomouse = false,
+	noindicator = true,
+	mode = "hold",
+	bind = Enum.UserInputType.MouseButton2,
+	risky = false,
+	keycallback = function(value)
+		AimbotKeyCode = value
+	end
+})
+
+GeneralSections.General2:AddColor({
+	enabled = true,
+	text = "FOV Color",
+	flag = "FOVColor",
+	color = Color3.fromRGB(255, 255, 255),
+	trans = 0,
+	open = false,
+	callback = function(value)
+		FOVColor = value
+	end
+})
+
+GeneralSections.General2:AddSlider({
+	text = "Aimbot Smoothness",
+	flag = "AimbotSmooth",
+	value = 1,
+	min = 0.1,
+	max = 20,
+	increment = 0.1,
+	risky = false,
+	callback = function(value)
+		Smoothness = value
+	end
+})
+
+GeneralSections.General2:AddList({
+	enabled = true,
+	text = "Aim Part",
+	flag = "AimPart",
+	multi = false,
+	tooltip = "Select body part to aim at",
+	risky = false,
+	dragging = false,
+	focused = false,
+	value = "Head",
+	values = {
+		"Head",
+		"UpperTorso",
+		"LowerTorso",
+		"LeftUpperArm",
+		"LeftLowerArm",
+		"LeftHand",
+		"RightUpperArm",
+		"RightLowerArm",
+		"RightHand",
+		"LeftUpperLeg",
+		"LeftLowerLeg",
+		"LeftFoot",
+		"RightUpperLeg",
+		"RightLowerLeg",
+		"RightFoot"
+	},
+	callback = function(v)
+		AimPart = v
+	end
+})
+
+--
+local VisualsSections = {
+	VisualsESP = tabs.Tab2:AddSection("Player ESP", 1),
+	VisualsCOLOR = tabs.Tab2:AddSection("ESP Color", 2),
+    VisualsOutline = tabs.Tab2:AddSection("ESP Outline", 2),
+    VisualsRemove = tabs.Tab2:AddSection("Remove", 2),
+	VisualsOffscreen = tabs.Tab2:AddSection("ESP Offscreen", 1),
+    VisualsRandom = tabs.Tab2:AddSection("Random/troll stuff", 1),
+    VisualsBullet = tabs.Tab2:AddSection("Bullet Tracers", 2),
+    Visualsthird = tabs.Tab2:AddSection("Third Person", 1),
+}
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
+local thirdPerson = false
+local distance = 8
+
+local function setThirdPerson(state)
+	thirdPerson = state
+	if thirdPerson then
+		camera.CameraType = Enum.CameraType.Scriptable
+	else
+		camera.CameraType = Enum.CameraType.Custom
+	end
+end
+
+VisualsSections.Visualsthird:AddToggle({
+	enabled = true,
+	text = "Third Person",
+	flag = "ThirdPerson",
+	risky = false,
+	callback = function(v)
+		setThirdPerson(v)
+	end
+})
+
+VisualsSections.Visualsthird:AddSlider({
+	text = "Third Person Distance",
+	flag = "ThirdPersond",
+	suffix = "",
+	value = 100,
+	min = 30,
+	max = 150,
+	increment = 1,
+	risky = false,
+	callback = function(v)
+		distance = v / 10
+	end
+})
+
+RunService.RenderStepped:Connect(function()
+	if thirdPerson then
+		local model = Workspace:FindFirstChild(player.Name)
+		if model and model:FindFirstChild("HumanoidRootPart") then
+			local hrp = model.HumanoidRootPart
+			local lookDir = camera.CFrame.LookVector
+			local newCamPos = hrp.Position - lookDir * distance + Vector3.new(0, 2, 0)
+			camera.CFrame = CFrame.new(newCamPos, hrp.Position + Vector3.new(0, 2, 0))
+		end
+	end
+end)
+
+--
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local frozen = {}
+local queue = {}
+
+local BulletTracers = {
+    Enabled = true,
+    Lifetime = 2,
+    Color = Color3.new(1, 1, 1)
+}
+
+local function convertToForcefield(obj, color)
+    if obj:IsA("BasePart") then
+        obj.Material = Enum.Material.SmoothPlastic
+        obj.Color = color
+        obj.Anchored = true
+        obj.CanCollide = false
+    elseif obj:IsA("Beam") then
+        obj.Color = ColorSequence.new(color)
+        obj.LightEmission = 1
+    end
+    for _, child in pairs(obj:GetChildren()) do
+        convertToForcefield(child, color)
+    end
+end
+
+local function handleTracer(obj)
+    if frozen[obj] or not BulletTracers.Enabled then return end
+    frozen[obj] = true
+    local clone = obj:Clone()
+    clone.Name = "TRACERRRRRR"
+    clone.CFrame = obj.CFrame
+    convertToForcefield(clone, BulletTracers.Color)
+    clone.Parent = Workspace
+
+    local tween = TweenService:Create(clone, TweenInfo.new(BulletTracers.Lifetime, Enum.EasingStyle.Linear), {Transparency = 1})
+    tween:Play()
+    tween.Completed:Connect(function()
+        clone:Destroy()
+        frozen[obj] = nil
+    end)
+end
+
+Workspace.DescendantAdded:Connect(function(obj)
+    if obj.Name == "TracerEffect" and obj:IsA("BasePart") then
+        table.insert(queue, obj)
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if #queue == 0 then return end
+    local obj = table.remove(queue, 1)
+    if obj and obj.Parent and BulletTracers.Enabled then
+        handleTracer(obj)
+    end
+end)
+
+for _, obj in pairs(Workspace:GetDescendants()) do
+    if obj.Name == "TracerEffect" and obj:IsA("BasePart") then
+        table.insert(queue, obj)
+    end
+end
+
+VisualsSections.VisualsBullet:AddToggle({
+    enabled = BulletTracers.Enabled,
+    text = "Bullet Tracers",
+    flag = "BulletTracersEnabled",
+    risky = false,
+    callback = function(value)
+        BulletTracers.Enabled = value
+    end
+})
+
+VisualsSections.VisualsBullet:AddColor({
+    enabled = true,
+    text = "Bullet Tracers Color",
+    flag = "BulletTracersColor",
+    color = BulletTracers.Color,
+    trans = 0,
+    open = false,
+    callback = function(value)
+        BulletTracers.Color = value
+    end
+})
+
+VisualsSections.VisualsBullet:AddSlider({
+    text = "Bullet Tracers Lifetime", 
+    flag = "BulletTracersLifetime", 
+    suffix = "s", 
+    value = BulletTracers.Lifetime,
+    min = 1, 
+    max = 10,
+    increment = 1,
+    risky = true,
+    callback = function(value)
+        BulletTracers.Lifetime = value
+    end
+})
+
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local ViewModelsFolder = workspace:WaitForChild("ViewModels")
+
+local GunTextEnabled = false
+local GunTextColor = Color3.fromRGB(255, 255, 255)
+local billboards = {}
+
+local function clearBillboard(player)
+    if billboards[player] then
+        billboards[player]:Destroy()
+        billboards[player] = nil
+    end
+end
+
+local function createBillboard(player, textValue)
+    clearBillboard(player)
+    if not GunTextEnabled then return end
+
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(0.5,0.5,0.5)
+    part.Transparency = 1
+    part.CanCollide = false
+    part.Anchored = true
+    part.Parent = workspace
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Adornee = part
+    billboard.AlwaysOnTop = true
+    billboard.Parent = part
+
+    local text = Instance.new("TextLabel")
+    text.BackgroundTransparency = 1
+    text.TextStrokeTransparency = 0
+    text.TextColor3 = GunTextColor
+    text.Font = Enum.Font.SourceSans
+    text.TextScaled = false
+    text.Text = textValue
+    text.Size = UDim2.new(1,0,1,0)
+    text.Parent = billboard
+
+    billboards[player] = part
+end
+
+local function updateBillboards()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player == LocalPlayer then
+            clearBillboard(player)
+            continue
+        end
+
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            clearBillboard(player)
+            continue
+        end
+
+        local modelFound = false
+        for _, vm in ipairs(ViewModelsFolder:GetChildren()) do
+            local parts = string.split(vm.Name, " - ")
+            if #parts >= 3 and parts[1] == player.Name then
+                createBillboard(player, parts[3])
+                modelFound = true
+                break
+            end
+        end
+
+        if not modelFound then
+            createBillboard(player, "NONE")
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if not GunTextEnabled then
+        for player, part in pairs(billboards) do
+            clearBillboard(player)
+        end
+        return
+    end
+
+    updateBillboards()
+    for player, part in pairs(billboards) do
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = player.Character.HumanoidRootPart
+            local dist = (Camera.CFrame.Position - hrp.Position).Magnitude
+
+            local baseScale = math.clamp(60 / dist, 0.4, 1)
+            local textValue = part:FindFirstChildOfClass("BillboardGui"):FindFirstChildOfClass("TextLabel").Text
+            local sizeScale = baseScale * math.clamp(8 / math.max(#textValue, 1), 0.7, 1.2)
+
+            -- place the Billboard a bit more under the feet
+            local offset = -3.5 - baseScale
+            part.CFrame = hrp.CFrame * CFrame.new(0, offset, 0)
+
+            if part:FindFirstChildOfClass("BillboardGui") then
+                local textLabel = part.BillboardGui:FindFirstChildOfClass("TextLabel")
+                if textLabel then
+                    textLabel.TextColor3 = GunTextColor
+                    textLabel.TextScaled = false
+                    textLabel.TextSize = 14 * sizeScale
+
+                    local textWidth = #textLabel.Text * textLabel.TextSize / 1.5
+                    part.BillboardGui.Size = UDim2.new(0, textWidth + 10, 0, textLabel.TextSize + 4)
+                end
+            end
+        else
+            clearBillboard(player)
+        end
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    clearBillboard(player)
+end)
+
+VisualsSections.VisualsCOLOR:AddColor({
+    enabled = true,
+    text = "Gun ESP Color",
+    flag = "GunESPColor",
+    color = GunTextColor,
+    trans = 0,
+    open = false,
+    callback = function(value)
+        GunTextColor = value
+    end
+})
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "Gun ESP",
+	flag = "Gun",
+	risky = false,
+	callback = function(value)
+		GunTextEnabled = value
+	end
+})
+
+--
+
+VisualsSections.VisualsRemove:AddToggle({
+	enabled = true,
+	text = "Remove Flash",
+    tooltip = "Doesnt toggle of mb gng",
+	flag = "RemoveFlash",
+	risky = false,
+	callback = function(value)
+		local plr = game:GetService("Players").LocalPlayer
+		local misc = plr.PlayerScripts.Assets.Misc
+		local flash = misc:FindFirstChild("FlashbangEffect")
+
+		if value then
+			if flash then
+				flash:Destroy()
+			end
+		else
+			if not flash then
+				local clonedFlash = plr:WaitForChild("PlayerScripts"):WaitForChild("Assets"):WaitForChild("MiscBackup"):FindFirstChild("FlashbangEffect")
+				if clonedFlash then
+					clonedFlash:Clone().Parent = misc
+				end
+			end
+		end
+	end
+})
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+local localPlayer = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
+
+local targetPlayer = nil
+local isLeftMouseDown = false
+local isRightMouseDown = false
+local autoClickConnection = nil
+local SilentAimEnabled = false
+local RainbowFovEnabled = false
+local RandomHitEnabled = false
+local hue = 0
+local SelectedAimPart = "Head"
+
+local VisualsSettings = {
+    VisualizeFOV = false,
+    UseFOV = false,
+    WallCheck = false,
+    HealthCheck = false,
+    FOVRadius = 60,
+    FOVColor = Color3.fromRGB(255, 255, 255)
+}
+
+local function isLobbyVisible()
+    return localPlayer.PlayerGui.MainGui.MainFrame.Lobby.Currency.Visible == true
+end
+
+local function isPlayerVisible(player)
+    if not player.Character or not player.Character:FindFirstChild("Head") then return false end
+    local headPos = player.Character.Head.Position
+    local direction = (headPos - camera.CFrame.Position).Unit
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {localPlayer.Character}
+    local result = Workspace:Raycast(camera.CFrame.Position, direction * (headPos - camera.CFrame.Position).Magnitude, raycastParams)
+    if VisualsSettings.WallCheck then
+        return result == nil or result.Instance:IsDescendantOf(player.Character)
+    end
+    return true
+end
+
+local function getClosestPlayerToMouse()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local mousePosition = UserInputService:GetMouseLocation()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= localPlayer and isPlayerVisible(player) then
+            local aimPart = player.Character and player.Character:FindFirstChild(SelectedAimPart)
+            if aimPart then
+                local partPos, onScreen = camera:WorldToViewportPoint(aimPart.Position)
+                if onScreen then
+                    local screenPos = Vector2.new(partPos.X, partPos.Y)
+                    local distance = (screenPos - mousePosition).Magnitude
+                    if VisualsSettings.UseFOV and distance > VisualsSettings.FOVRadius then continue end
+                    if VisualsSettings.HealthCheck and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health <= 0 then continue end
+                    if distance < shortestDistance then
+                        closestPlayer = player
+                        shortestDistance = distance
+                    end
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+local function getRandomBodyPart(character)
+    local bodyParts = {}
+    for _, part in ipairs(character:GetChildren()) do
+        if part:IsA("BasePart") then
+            table.insert(bodyParts, part)
+        end
+    end
+    if #bodyParts > 0 then
+        return bodyParts[math.random(1, #bodyParts)]
+    end
+    return character:FindFirstChild("Head")
+end
+
+local function lockCameraToTarget()
+    if targetPlayer and targetPlayer.Character then
+        local targetPart
+        if RandomHitEnabled then
+            targetPart = getRandomBodyPart(targetPlayer.Character)
+        else
+            targetPart = targetPlayer.Character:FindFirstChild(SelectedAimPart)
+        end
+        if targetPart then
+            camera.CFrame = CFrame.new(camera.CFrame.Position, targetPart.Position)
+        end
+    end
+end
+
+local function autoClick()
+    if autoClickConnection then
+        autoClickConnection:Disconnect()
+    end
+    autoClickConnection = RunService.Heartbeat:Connect(function()
+        if isLeftMouseDown or isRightMouseDown then
+            if not isLobbyVisible() then
+                mouse1click()
+            end
+        else
+            autoClickConnection:Disconnect()
+        end
+    end)
+end
+
+UserInputService.InputBegan:Connect(function(input, isProcessed)
+    if not SilentAimEnabled then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and not isProcessed then
+        if not isLeftMouseDown then
+            isLeftMouseDown = true
+            autoClick()
+        end
+    elseif input.UserInputType == Enum.UserInputType.MouseButton2 and not isProcessed then
+        if not isRightMouseDown then
+            isRightMouseDown = true
+            autoClick()
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isLeftMouseDown = false
+    elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isRightMouseDown = false
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not SilentAimEnabled then return end
+    if not isLobbyVisible() then
+        targetPlayer = getClosestPlayerToMouse()
+        if targetPlayer then
+            lockCameraToTarget()
+        end
+    end
+end)
+
+local fovCircle = Drawing.new("Circle")
+fovCircle.Visible = false
+fovCircle.Radius = VisualsSettings.FOVRadius
+fovCircle.Color = VisualsSettings.FOVColor
+fovCircle.Thickness = 1
+fovCircle.Filled = false
+fovCircle.Position = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+
+RunService.RenderStepped:Connect(function()
+    if VisualsSettings.VisualizeFOV then
+        fovCircle.Visible = true
+        fovCircle.Radius = VisualsSettings.FOVRadius
+        if RainbowFovEnabled then
+            hue = (hue + 0.005) % 1
+            fovCircle.Color = Color3.fromHSV(hue, 1, 1)
+        else
+            fovCircle.Color = VisualsSettings.FOVColor
+        end
+        fovCircle.Position = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    else
+        fovCircle.Visible = false
+    end
+end)
+
+GeneralSections.General1:AddToggle({
+	enabled = true,
+	text = "Silent aim",
+	flag = "SilentAim",
+	risky = true,
+	callback = function(value)
+        SilentAimEnabled = value
+	end
+})
+
+GeneralSections.General1:AddToggle({
+	enabled = true,
+	text = "Draw Fov",
+	flag = "DrawFov",
+	risky = true,
+	callback = function(value)
+        VisualsSettings.VisualizeFOV = value
+	end
+})
+
+GeneralSections.General1:AddToggle({
+	enabled = true,
+	text = "Use Fov",
+	flag = "UseFov",
+	risky = true,
+	callback = function(value)
+        VisualsSettings.UseFOV = value
+	end
+})
+
+GeneralSections.General1:AddSlider({
+	text = "Fov Size", 
+	flag = "FoVsize", 
+	suffix = "", 
+	value = 60,
+	min = 1, 
+	max = 360,
+	increment = 1,
+	risky = true,
+	callback = function(value)
+        VisualsSettings.FOVRadius = value
+	end
+})
+
+GeneralSections.General1:AddToggle({
+	enabled = true,
+	text = "Wallcheck",
+	flag = "WallCheck",
+	risky = true,
+	callback = function(value)
+        VisualsSettings.WallCheck = value
+	end
+})
+
+GeneralSections.General1:AddToggle({
+	enabled = true,
+	text = "Health Check",
+	flag = "HealthCheck",
+	risky = true,
+	callback = function(value)
+        VisualsSettings.HealthCheck = value
+	end
+})
+
+GeneralSections.General1:AddToggle({
+	enabled = true,
+	text = "Rainbow Fov",
+	flag = "RainbowFov",
+	risky = true,
+	callback = function(value)
+        RainbowFovEnabled = value
+	end
+})
+
+GeneralSections.General1:AddToggle({
+	enabled = true,
+	text = "Random Hit Part",
+	flag = "RandomHit",
+	risky = true,
+	callback = function(value)
+        RandomHitEnabled = value
+	end
+})
+
+GeneralSections.General1:AddColor({
+	enabled = true,
+	text = "FOV Color",
+	flag = "FOVColor",
+	color = Color3.fromRGB(255, 255, 255),
+	trans = 0,
+	open = false,
+	callback = function(value)
+        VisualsSettings.FOVColor = value
+	end
+})
+
+GeneralSections.General1:AddList({
+	enabled = true,
+	text = "Aim Part",
+	flag = "AimPart",
+	multi = false,
+	tooltip = "Select the body part to aim at",
+	risky = true,
+	dragging = false,
+	focused = false,
+	value = "Head",
+	values = {
+		"Head",
+		"UpperTorso",
+		"LowerTorso",
+		"LeftUpperArm",
+		"LeftLowerArm",
+		"LeftHand",
+		"RightUpperArm",
+		"RightLowerArm",
+		"RightHand",
+		"LeftUpperLeg",
+		"LeftLowerLeg",
+		"LeftFoot",
+		"RightUpperLeg",
+		"RightLowerLeg",
+		"RightFoot"
+	},
+	callback = function(v)
+		SelectedAimPart = v
+	end
+})
+
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local HeightAboveHead = 1.2
+local ConeHeight = 0.6
+local ConeRadius = 0.6
+local Sides = 10
+local MaxDistance = 250
+
+local AllCones = {}
+local ChinaHatConnection
+local ChinaHatEnabled = false
+
+local function getRainbowColor(speed)
+	local t = tick() * (speed or 1)
+	return Color3.fromHSV((t % 1), 1, 1)
+end
+
+local function CreateConeForPlayer(player)
+	local lines = {}
+	for i = 1, Sides do
+		local baseLine = Drawing.new("Line")
+		baseLine.Visible = false
+		table.insert(lines, baseLine)
+		local sideLine = Drawing.new("Line")
+		sideLine.Visible = false
+		table.insert(lines, sideLine)
+	end
+	AllCones[player] = lines
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	if AllCones[player] then
+		for _, line in ipairs(AllCones[player]) do
+			line:Remove()
+		end
+		AllCones[player] = nil
+	end
+end)
+
+local function ToggleChinaHat(state)
+	ChinaHatEnabled = state
+	if ChinaHatEnabled then
+		local lastFrame = 0
+		local frameCap = 1 / 100
+		ChinaHatConnection = RunService.RenderStepped:Connect(function(dt)
+			lastFrame += dt
+			if lastFrame < frameCap then return end
+			lastFrame = 0
+			local rainbow = getRainbowColor(0.4)
+			local cameraPos = Camera.CFrame.Position
+			for _, player in ipairs(Players:GetPlayers()) do
+				if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+					if not AllCones[player] then
+						CreateConeForPlayer(player)
+					end
+					local lines = AllCones[player]
+					local head = player.Character.Head
+					local headPos = head.Position + Vector3.new(0, HeightAboveHead, 0)
+					local tip = headPos + Vector3.new(0, ConeHeight, 0)
+					local distance = (cameraPos - headPos).Magnitude
+					if distance > MaxDistance then
+						for _, line in ipairs(lines) do line.Visible = false end
+						continue
+					end
+					local screenTip, visTip = Camera:WorldToViewportPoint(tip)
+					if not visTip then
+						for _, line in ipairs(lines) do line.Visible = false end
+						continue
+					end
+					for i = 1, Sides do
+						local angle1 = math.rad((i / Sides) * 360)
+						local angle2 = math.rad(((i % Sides + 1) / Sides) * 360)
+						local p1 = headPos + Vector3.new(math.cos(angle1) * ConeRadius, 0, math.sin(angle1) * ConeRadius)
+						local p2 = headPos + Vector3.new(math.cos(angle2) * ConeRadius, 0, math.sin(angle2) * ConeRadius)
+						local s1, v1 = Camera:WorldToViewportPoint(p1)
+						local s2, v2 = Camera:WorldToViewportPoint(p2)
+						local base = lines[(i - 1) * 2 + 1]
+						local side = lines[(i - 1) * 2 + 2]
+						if v1 and v2 then
+							local v1pos = Vector2.new(s1.X, s1.Y)
+							local v2pos = Vector2.new(s2.X, s2.Y)
+							local tipPos = Vector2.new(screenTip.X, screenTip.Y)
+							base.Thickness = 1
+							side.Thickness = 1
+							base.From = v1pos
+							base.To = v2pos
+							side.From = v1pos
+							side.To = tipPos
+							base.Color = rainbow
+							side.Color = rainbow
+							base.Visible = true
+							side.Visible = true
+						else
+							base.Visible = false
+							side.Visible = false
+						end
+					end
+				elseif AllCones[player] then
+					for _, line in ipairs(AllCones[player]) do
+						line.Visible = false
+					end
+				end
+			end
+		end)
+	else
+		if ChinaHatConnection then
+			ChinaHatConnection:Disconnect()
+			ChinaHatConnection = nil
+		end
+		for _, playerLines in pairs(AllCones) do
+			for _, line in ipairs(playerLines) do
+				line.Visible = false
+			end
+		end
+	end
+end
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "China Hat",
+	flag = "ChinaHat",
+	risky = false,
+	callback = function(state)
+		ToggleChinaHat(state)
+	end
+})
+
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+
+local Texts = {}
+local DihESPEnabled = false
+
+local function addTorsoText(player, text)
+	if not player.Character or not DihESPEnabled then return end
+	local torso = player.Character:FindFirstChild("UpperTorso") 
+			or player.Character:FindFirstChild("Torso") 
+			or player.Character:FindFirstChild("HumanoidRootPart")
+	if not torso then return end
+
+	if Texts[player] then return end
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Adornee = torso
+	billboard.AlwaysOnTop = true
+	billboard.Size = UDim2.new(0, 50, 0, 25)
+	billboard.StudsOffset = Vector3.new(0, -torso.Size.Y/2, 0)
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.TextScaled = true
+	label.Font = Enum.Font.ArialBold
+	label.Parent = billboard
+
+	billboard.Parent = torso
+	Texts[player] = {Billboard = billboard, Label = label, Torso = torso}
+end
+
+local function removeTorsoText(player)
+	if Texts[player] then
+		Texts[player].Billboard:Destroy()
+		Texts[player] = nil
+	end
+end
+
+VisualsSections.VisualsRandom:AddToggle({
+	enabled = true,
+	text = "Dih esp",
+	flag = "Dih esp",
+	risky = false,
+	callback = function(value)
+		DihESPEnabled = value
+		if not DihESPEnabled then
+			for _, data in pairs(Texts) do
+				data.Billboard:Destroy()
+			end
+			Texts = {}
+		end
+	end
+})
+
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function()
+		if DihESPEnabled then
+			addTorsoText(player, [[. .
+|]])
+		end
+	end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	removeTorsoText(player)
+end)
+
+RunService.RenderStepped:Connect(function()
+	local camPos = Camera.CFrame.Position
+	for _, player in pairs(Players:GetPlayers()) do
+		if DihESPEnabled then
+			if player.Character and not Texts[player] then
+				addTorsoText(player, [[. .
+|]])
+			end
+		else
+			removeTorsoText(player)
+		end
+	end
+
+	for _, data in pairs(Texts) do
+		if data.Torso and data.Torso.Parent then
+			local dist = (camPos - data.Torso.Position).Magnitude
+			local scale = math.clamp(100 / dist, 0.5, 3)
+			data.Billboard.Size = UDim2.new(0, 50 * scale, 0, 25 * scale)
+		end
+	end
+end)
+
+--
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local Particles = {}
+local OriginalParticles = {}
+local RemoveParticles = false
+local lastUpdate = 0
+local updateInterval = 0.5
+
+for _, descendant in pairs(Workspace:GetDescendants()) do
+	if descendant:IsA("ParticleEmitter") or descendant:IsA("Trail") then
+		table.insert(Particles, descendant)
+		table.insert(OriginalParticles, descendant)
+	end
+end
+
+Workspace.DescendantAdded:Connect(function(obj)
+	if obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
+		table.insert(Particles, obj)
+		table.insert(OriginalParticles, obj)
+	end
+end)
+
+VisualsSections.VisualsRandom:AddToggle({
+	enabled = true,
+	text = "Remove particles",
+	flag = "Removeparticles",
+	risky = false,
+	callback = function(value)
+		RemoveParticles = value
+		if not RemoveParticles then
+			for _, particle in ipairs(OriginalParticles) do
+				if particle and not particle.Parent then
+					particle.Parent = Workspace
+				end
+			end
+		end
+	end
+})
+
+RunService.Heartbeat:Connect(function()
+	if not RemoveParticles then return end
+	local now = tick()
+	if now - lastUpdate >= updateInterval then
+		lastUpdate = now
+		for i = #Particles, 1, -1 do
+			local p = Particles[i]
+			if p and p.Parent then
+				p.Parent = nil
+			end
+		end
+	end
+end)
+
+--
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local Particles = {}
+local lastUpdate = 0
+local updateInterval = 0.1
+local RainbowParticles = false
+local OriginalColors = {}
+
+for _, descendant in pairs(Workspace:GetDescendants()) do
+	if descendant:IsA("ParticleEmitter") or descendant:IsA("Trail") then
+		table.insert(Particles, descendant)
+		OriginalColors[descendant] = descendant.Color
+	end
+end
+
+Workspace.DescendantAdded:Connect(function(obj)
+	if obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
+		table.insert(Particles, obj)
+		OriginalColors[obj] = obj.Color
+	end
+end)
+
+VisualsSections.VisualsRandom:AddToggle({
+	enabled = true,
+	text = "Rainbow particles",
+	flag = "Rainbowparticles",
+	risky = false,
+	callback = function(value)
+		RainbowParticles = value
+		if not value then
+			for _, p in ipairs(Particles) do
+				if p and p.Parent and OriginalColors[p] then
+					p.Color = OriginalColors[p]
+				end
+			end
+		end
+	end
+})
+
+RunService.Heartbeat:Connect(function()
+	if not RainbowParticles then return end
+	local now = tick()
+	if now - lastUpdate >= updateInterval then
+		lastUpdate = now
+		local color = Color3.fromHSV((now * 2) % 1, 1, 1)
+		for i = #Particles, 1, -1 do
+			local p = Particles[i]
+			if p and p.Parent then
+				p.Color = ColorSequence.new(color)
+			else
+				table.remove(Particles, i)
+			end
+		end
+	end
+end)
+
+--
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local RemoveSmoke = false
+
+VisualsSections.VisualsRemove:AddToggle({
+	enabled = true,
+	text = "Remove Smoke",
+	flag = "RemoveSmoke",
+	risky = false,
+	callback = function(value)
+		RemoveSmoke = value
+	end
+})
+
+RunService.Stepped:Connect(function()
+	if RemoveSmoke then
+		local SmokeGrenade = Workspace:FindFirstChild("Smoke Grenade")
+		if SmokeGrenade then
+			SmokeGrenade:Destroy()
+		end
+	end
+end)
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local BoundBoxEnabled = false
+local BoundBoxOutlineEnabled = false
+local BoundBoxColor = Color3.new(1, 1, 1)
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "Bounding Box",
+	flag = "BoundingBox",
+	risky = false,
+	callback = function(value)
+		BoundBoxEnabled = value
+	end
+})
+
+VisualsSections.VisualsOutline:AddToggle({
+	enabled = true,
+	text = "Bounding Box Outline",
+	flag = "BoundingBoxOutline",
+	risky = false,
+	callback = function(value)
+		BoundBoxOutlineEnabled = value
+	end
+})
+
+VisualsSections.VisualsCOLOR:AddColor({
+	enabled = true,
+	text = "Bounding Box Color",
+	flag = "BoundingBoxColor",
+	color = BoundBoxColor,
+	trans = 0,
+	open = false,
+	callback = function(value)
+		BoundBoxColor = value
+	end
+})
+
+local ESPData = {}
+
+local function createPlayerESP(player)
+	local box = Drawing.new("Square")
+	box.Visible = false
+	box.Thickness = 1
+	box.Filled = false
+	box.Color = BoundBoxColor
+
+	local outline1 = Drawing.new("Square")
+	outline1.Visible = false
+	outline1.Thickness = 0.8
+	outline1.Filled = false
+	outline1.Color = Color3.new(0, 0, 0)
+
+	local outline2 = Drawing.new("Square")
+	outline2.Visible = false
+	outline2.Thickness = 0.8
+	outline2.Filled = false
+	outline2.Color = Color3.new(0, 0, 0)
+
+	local data = {Box = box, Outline1 = outline1, Outline2 = outline2, Character = nil}
+	ESPData[player] = data
+
+	player.CharacterAdded:Connect(function(char)
+		data.Character = char
+	end)
+
+	if player.Character then
+		data.Character = player.Character
+	end
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		createPlayerESP(player)
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	if player ~= LocalPlayer then
+		createPlayerESP(player)
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	local data = ESPData[player]
+	if data then
+		data.Box:Remove()
+		data.Outline1:Remove()
+		data.Outline2:Remove()
+		ESPData[player] = nil
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if not BoundBoxEnabled then
+		for _, data in pairs(ESPData) do
+			data.Box.Visible = false
+			data.Outline1.Visible = false
+			data.Outline2.Visible = false
+		end
+		return
+	end
+
+	for player, data in pairs(ESPData) do
+		local char = data.Character
+		if not char then
+			data.Box.Visible = false
+			data.Outline1.Visible = false
+			data.Outline2.Visible = false
+			continue
+		end
+
+		local parts = {}
+		for _, part in ipairs(char:GetChildren()) do
+			if part:IsA("BasePart") then
+				table.insert(parts, part)
+			end
+		end
+
+		local minX, minY = math.huge, math.huge
+		local maxX, maxY = -math.huge, -math.huge
+		local onScreen = false
+
+		for _, part in ipairs(parts) do
+			local pos, visible = Camera:WorldToViewportPoint(part.Position)
+			if visible then
+				onScreen = true
+				minX = math.min(minX, pos.X)
+				maxX = math.max(maxX, pos.X)
+				minY = math.min(minY, pos.Y)
+				maxY = math.max(maxY, pos.Y)
+			end
+		end
+
+		local padding = 3
+		if onScreen then
+			local pos = Vector2.new(minX - padding, minY - padding)
+			local size = Vector2.new(maxX - minX + padding * 2, maxY - minY + padding * 2)
+
+			data.Box.Color = BoundBoxColor
+			data.Box.Position = pos
+			data.Box.Size = size
+			data.Box.Visible = true
+
+			if BoundBoxOutlineEnabled then
+				data.Outline1.Position = pos - Vector2.new(0.8, 0.8)
+				data.Outline1.Size = size + Vector2.new(1.6, 1.6)
+				data.Outline1.Visible = true
+
+				data.Outline2.Position = pos + Vector2.new(0.8, 0.8)
+				data.Outline2.Size = size - Vector2.new(1.6, 1.6)
+				data.Outline2.Visible = true
+			else
+				data.Outline1.Visible = false
+				data.Outline2.Visible = false
+			end
+		else
+			data.Box.Visible = false
+			data.Outline1.Visible = false
+			data.Outline2.Visible = false
+		end
+	end
+end)
+
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local Box3DEnabled = false
+local Box3DColor = Color3.new(1, 1, 1)
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "3D box",
+	flag = "3dbox",
+	risky = false,
+	callback = function(value)
+		Box3DEnabled = value
+	end
+})
+
+VisualsSections.VisualsCOLOR:AddColor({
+	enabled = true,
+	text = "3D Box Color",
+	flag = "3D",
+	color = Box3DColor,
+	trans = 0,
+	open = false,
+	callback = function(value)
+		Box3DColor = value
+	end
+})
+
+local function Create3DESP(player)
+	local lines = {}
+	for i = 1, 12 do
+		lines[i] = Drawing.new("Line")
+		lines[i].Visible = false
+		lines[i].Color = Box3DColor
+		lines[i].Thickness = 1
+	end
+
+	local function getCorners(character)
+		local parts = {}
+		for _, part in ipairs(character:GetChildren()) do
+			if part:IsA("BasePart") then
+				table.insert(parts, part)
+			end
+		end
+
+		if #parts == 0 then return end
+
+		local min, max = parts[1].Position, parts[1].Position
+		for _, part in ipairs(parts) do
+			local pos = part.Position
+			min = Vector3.new(math.min(min.X, pos.X), math.min(min.Y, pos.Y), math.min(min.Z, pos.Z))
+			max = Vector3.new(math.max(max.X, pos.X), math.max(max.Y, pos.Y), math.max(max.Z, pos.Z))
+		end
+
+		local corners = {
+			Vector3.new(min.X, min.Y, min.Z),
+			Vector3.new(max.X, min.Y, min.Z),
+			Vector3.new(min.X, max.Y, min.Z),
+			Vector3.new(max.X, max.Y, min.Z),
+			Vector3.new(min.X, min.Y, max.Z),
+			Vector3.new(max.X, min.Y, max.Z),
+			Vector3.new(min.X, max.Y, max.Z),
+			Vector3.new(max.X, max.Y, max.Z),
+		}
+
+		return corners
+	end
+
+	RunService.RenderStepped:Connect(function()
+		if not Box3DEnabled then
+			for i = 1, 12 do
+				lines[i].Visible = false
+			end
+			return
+		end
+
+		if not player.Character then return end
+
+		local corners = getCorners(player.Character)
+		if not corners then return end
+
+		local screenCorners = {}
+		for i = 1, #corners do
+			local pos, visible = Camera:WorldToViewportPoint(corners[i])
+			screenCorners[i] = {pos = Vector2.new(pos.X, pos.Y), visible = visible}
+		end
+
+		local edges = {
+			{1,2},{2,4},{4,3},{3,1}, 
+			{5,6},{6,8},{8,7},{7,5}, 
+			{1,5},{2,6},{3,7},{4,8}  
+		}
+
+		for i = 1, #edges do
+			local a,b = edges[i][1], edges[i][2]
+			if screenCorners[a].visible and screenCorners[b].visible then
+				lines[i].From = screenCorners[a].pos
+				lines[i].To = screenCorners[b].pos
+				lines[i].Color = Box3DColor
+				lines[i].Visible = true
+			else
+				lines[i].Visible = false
+			end
+		end
+	end)
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		Create3DESP(player)
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	Create3DESP(player)
+end)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local SkeletonEnabled = false
+local SkeletonColor = Color3.fromRGB(255, 255, 255)
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "Skeleton",
+	flag = "Skely",
+	risky = false,
+	callback = function(value)
+		SkeletonEnabled = value
+	end
+})
+
+VisualsSections.VisualsCOLOR:AddColor({
+	enabled = true,
+	text = "Skeleton Color",
+	flag = "SkeletonColor",
+	color = SkeletonColor,
+	trans = 0,
+	open = false,
+	callback = function(value)
+		SkeletonColor = value
+	end
+})
+
+local skeletons = {}
+
+local function createSkeleton(player)
+	local lines = {}
+	for i = 1, 20 do
+		local l = Drawing.new("Line")
+		l.Visible = false
+		l.Color = SkeletonColor
+		l.Thickness = 1
+		lines[i] = l
+	end
+	skeletons[player] = lines
+end
+
+local function removeSkeleton(player)
+	if skeletons[player] then
+		for _, line in ipairs(skeletons[player]) do
+			line:Remove()
+		end
+		skeletons[player] = nil
+	end
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		createSkeleton(player)
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	if player ~= LocalPlayer then
+		createSkeleton(player)
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	removeSkeleton(player)
+end)
+
+RunService.RenderStepped:Connect(function()
+	for player, lines in pairs(skeletons) do
+		if not SkeletonEnabled then
+			for _, line in ipairs(lines) do
+				line.Visible = false
+			end
+			continue
+		end
+
+		local character = player.Character
+		if not character then continue end
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if not humanoid then continue end
+
+		local joints = {}
+		if humanoid.RigType == Enum.HumanoidRigType.R6 then
+			joints = {
+				{"Head", "Torso"},
+				{"Torso", "Left Arm"},
+				{"Torso", "Right Arm"},
+				{"Torso", "Left Leg"},
+				{"Torso", "Right Leg"}
+			}
+		else
+
+			joints = {
+				{"Head", "UpperTorso"},
+				{"UpperTorso", "LowerTorso"},
+				{"UpperTorso", "LeftUpperArm"},
+				{"UpperTorso", "RightUpperArm"},
+				{"LowerTorso", "LeftUpperLeg"},
+				{"LowerTorso", "RightUpperLeg"},
+				{"LeftUpperArm", "LeftLowerArm"},
+				{"LeftLowerArm", "LeftHand"},
+				{"RightUpperArm", "RightLowerArm"},
+				{"RightLowerArm", "RightHand"},
+				{"LeftUpperLeg", "LeftLowerLeg"},
+				{"LeftLowerLeg", "LeftFoot"},
+				{"RightUpperLeg", "RightLowerLeg"},
+				{"RightLowerLeg", "RightFoot"}
+			}
+		end
+
+		for i, joint in ipairs(joints) do
+			local part0 = character:FindFirstChild(joint[1])
+			local part1 = character:FindFirstChild(joint[2])
+			if part0 and part1 then
+				local pos0, onScreen0 = Camera:WorldToViewportPoint(part0.Position)
+				local pos1, onScreen1 = Camera:WorldToViewportPoint(part1.Position)
+				if onScreen0 and onScreen1 then
+					lines[i].From = Vector2.new(pos0.X, pos0.Y)
+					lines[i].To = Vector2.new(pos1.X, pos1.Y)
+					lines[i].Color = SkeletonColor
+					lines[i].Visible = true
+				else
+					lines[i].Visible = false
+				end
+			else
+				lines[i].Visible = false
+			end
+		end
+	end
+end)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local TracersEnabled = false
+local TracersColor = Color3.fromRGB(255, 255, 255)
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "Tracers",
+	flag = "Tracers",
+	risky = false,
+	callback = function(value)
+		TracersEnabled = value
+	end
+})
+
+VisualsSections.VisualsCOLOR:AddColor({
+	enabled = true,
+	text = "Tracers Color",
+	flag = "TracersColor",
+	color = TracersColor,
+	trans = 0,
+	open = false,
+	callback = function(value)
+		TracersColor = value
+	end
+})
+
+local tracers = {}
+
+local function createTracer(player)
+	local line = Drawing.new("Line")
+	line.Visible = false
+	line.Color = TracersColor
+	line.Thickness = 1
+	table.insert(tracers, {player = player, line = line})
+end
+
+local function removeTracer(player)
+	for i, v in ipairs(tracers) do
+		if v.player == player then
+			v.line:Remove()
+			table.remove(tracers, i)
+			break
+		end
+	end
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		createTracer(player)
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	if player ~= LocalPlayer then
+		createTracer(player)
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	removeTracer(player)
+end)
+
+RunService.RenderStepped:Connect(function()
+	for _, v in ipairs(tracers) do
+		local player = v.player
+		local line = v.line
+		if TracersEnabled then
+			local character = player.Character
+			if character and character:FindFirstChild("Head") then
+				local head = character.Head
+				local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+				if onScreen then
+					local screenBottom = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+					line.From = screenBottom
+					line.To = Vector2.new(pos.X, pos.Y)
+					line.Color = TracersColor
+					line.Visible = true
+				else
+					line.Visible = false
+				end
+			else
+				line.Visible = false
+			end
+		else
+			line.Visible = false
+		end
+	end
+end)
+
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local HeadCircleEnabled = false
+local HeadCircleColor = Color3.fromRGB(255, 255, 255)
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "Head",
+	flag = "Head",
+	risky = false,
+	callback = function(value)
+		HeadCircleEnabled = value
+	end
+})
+
+VisualsSections.VisualsCOLOR:AddColor({
+	enabled = true,
+	text = "Head Circle Color",
+	flag = "HeadCircleColor",
+	color = HeadCircleColor,
+	trans = 0,
+	open = false,
+	callback = function(value)
+		HeadCircleColor = value
+	end
+})
+
+local headCircles = {}
+
+local function createHeadCircle(player)
+	local circle = Drawing.new("Circle")
+	circle.Visible = false
+	circle.Color = HeadCircleColor
+	circle.Thickness = 1
+	circle.NumSides = 30
+	circle.Filled = false
+	headCircles[player] = circle
+end
+
+local function removeHeadCircle(player)
+	if headCircles[player] then
+		headCircles[player]:Remove()
+		headCircles[player] = nil
+	end
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		createHeadCircle(player)
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	if player ~= LocalPlayer then
+		createHeadCircle(player)
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	removeHeadCircle(player)
+end)
+
+RunService.RenderStepped:Connect(function()
+	for player, circle in pairs(headCircles) do
+		if not HeadCircleEnabled then
+			circle.Visible = false
+			continue
+		end
+		local character = player.Character
+		if character and character:FindFirstChild("Head") then
+			local head = character.Head
+			local headPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+			if onScreen then
+
+				local headTop = head.Position + Vector3.new(0, head.Size.Y/2, 0)
+				local headBottom = head.Position - Vector3.new(0, head.Size.Y/2, 0)
+				local topPos, topOnScreen = Camera:WorldToViewportPoint(headTop)
+				local bottomPos, bottomOnScreen = Camera:WorldToViewportPoint(headBottom)
+
+				if topOnScreen and bottomOnScreen then
+					local radius = (topPos.Y - bottomPos.Y) / 2
+					circle.Position = Vector2.new(headPos.X, headPos.Y)
+					circle.Radius = math.abs(radius)
+					circle.Color = HeadCircleColor
+					circle.Visible = true
+				else
+					circle.Visible = false
+				end
+			else
+				circle.Visible = false
+			end
+		else
+			circle.Visible = false
+		end
+	end
+end)
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+local FillBoxEnabled = false
+local FillBoxColor = Color3.new(1, 1, 1)
+local Boxes = {}
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "Fill box",
+	flag = "Fill",
+	risky = false,
+	callback = function(value)
+		FillBoxEnabled = value
+	end
+})
+
+VisualsSections.VisualsCOLOR:AddColor({
+	enabled = true,
+	text = "Fill Box Color",
+	flag = "FillBoxColor",
+	color = FillBoxColor,
+	trans = 0,
+	open = false,
+	callback = function(value)
+		FillBoxColor = value
+	end
+})
+
+local function createBox(player)
+	local box = Drawing.new("Square")
+	box.Visible = false
+	box.Filled = true
+	box.Thickness = 0
+	box.Transparency = 0.3
+	box.Color = FillBoxColor
+
+	Boxes[player] = {
+		Box = box,
+		Character = player.Character or nil
+	}
+
+	player.CharacterAdded:Connect(function(char)
+		Boxes[player].Character = char
+	end)
+end
+
+local function removeBox(player)
+	if Boxes[player] then
+		Boxes[player].Box:Remove()
+		Boxes[player] = nil
+	end
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		createBox(player)
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	if player ~= LocalPlayer then
+		createBox(player)
+	end
+end)
+
+Players.PlayerRemoving:Connect(removeBox)
+
+RunService.RenderStepped:Connect(function()
+	if not FillBoxEnabled then
+		for _, data in pairs(Boxes) do
+			data.Box.Visible = false
+		end
+		return
+	end
+
+	for player, data in pairs(Boxes) do
+		local character = data.Character
+		local box = data.Box
+
+		if not character then
+			box.Visible = false
+			continue
+		end
+
+		local minX, minY = math.huge, math.huge
+		local maxX, maxY = -math.huge, -math.huge
+		local onScreen = false
+
+		for _, part in ipairs(character:GetChildren()) do
+			if part:IsA("BasePart") then
+				local pos, visible = Camera:WorldToViewportPoint(part.Position)
+				if visible then
+					onScreen = true
+					minX = math.min(minX, pos.X)
+					maxX = math.max(maxX, pos.X)
+					minY = math.min(minY, pos.Y)
+					maxY = math.max(maxY, pos.Y)
+				end
+			end
+		end
+
+		if onScreen then
+			local expand = 2
+			box.Position = Vector2.new(minX - expand, minY - expand)
+			box.Size = Vector2.new(maxX - minX + expand * 2, maxY - minY + expand * 2)
+			box.Color = FillBoxColor
+			box.Visible = true
+		else
+			box.Visible = false
+		end
+	end
+end)
+
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+getgenv().ESP_Healthbar = false
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "Healthbar",
+	flag = "Healthbar",
+	risky = false,
+	callback = function(value)
+		getgenv().ESP_Healthbar = value
+	end
+})
+
+local ESPData = {}
+
+local function createHealthBar(player)
+	if player == LocalPlayer then return end
+
+	local healthBar = Drawing.new("Square")
+	local outlineBar = Drawing.new("Square")
+	local backgroundBar = Drawing.new("Square")
+
+	healthBar.Filled = true
+	healthBar.Thickness = 0
+	healthBar.Visible = false
+
+	outlineBar.Filled = false
+	outlineBar.Thickness = 1
+	outlineBar.Visible = false
+
+	backgroundBar.Filled = true
+	backgroundBar.Thickness = 0
+	backgroundBar.Color = Color3.fromRGB(40, 40, 40)
+	backgroundBar.Transparency = 0.5
+	backgroundBar.Visible = false
+
+	ESPData[player] = {
+		healthBar = healthBar,
+		outlineBar = outlineBar,
+		backgroundBar = backgroundBar,
+		character = player.Character
+	}
+
+	player.CharacterAdded:Connect(function(char)
+		ESPData[player].character = char
+	end)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	createHealthBar(player)
+end
+
+Players.PlayerAdded:Connect(createHealthBar)
+
+Players.PlayerRemoving:Connect(function(player)
+	local data = ESPData[player]
+	if data then
+		data.healthBar:Remove()
+		data.outlineBar:Remove()
+		data.backgroundBar:Remove()
+		ESPData[player] = nil
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if not getgenv().ESP_Healthbar then
+		for _, data in pairs(ESPData) do
+			data.healthBar.Visible = false
+			data.outlineBar.Visible = false
+			data.backgroundBar.Visible = false
+		end
+		return
+	end
+
+	for player, data in pairs(ESPData) do
+		local char = data.character
+		if not char then
+			data.healthBar.Visible = false
+			data.outlineBar.Visible = false
+			data.backgroundBar.Visible = false
+			continue
+		end
+
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if not humanoid then
+			data.healthBar.Visible = false
+			data.outlineBar.Visible = false
+			data.backgroundBar.Visible = false
+			continue
+		end
+
+		local parts = {}
+		for _, part in ipairs(char:GetChildren()) do
+			if part:IsA("BasePart") then
+				table.insert(parts, part)
+			end
+		end
+
+		local minX, minY = math.huge, math.huge
+		local maxX, maxY = -math.huge, -math.huge
+		local onScreen = false
+
+		for _, part in ipairs(parts) do
+			local pos, visible = Camera:WorldToViewportPoint(part.Position)
+			if visible then
+				onScreen = true
+				minX = math.min(minX, pos.X)
+				maxX = math.max(maxX, pos.X)
+				minY = math.min(minY, pos.Y)
+				maxY = math.max(maxY, pos.Y)
+			end
+		end
+
+		if onScreen then
+			local padding = 3
+			local barWidth = 4
+			local barX = minX - barWidth - 5
+			local barTop = minY - padding
+			local barHeight = maxY - minY + padding * 2
+
+			local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+			local healthHeight = barHeight * healthPercent
+
+			data.outlineBar.Position = Vector2.new(barX, barTop)
+			data.outlineBar.Size = Vector2.new(barWidth, barHeight)
+			data.outlineBar.Visible = true
+
+			data.backgroundBar.Position = Vector2.new(barX, barTop)
+			data.backgroundBar.Size = Vector2.new(barWidth, barHeight)
+			data.backgroundBar.Visible = true
+
+			data.healthBar.Color = Color3.fromRGB((1 - healthPercent) * 255, healthPercent * 255, 0)
+			data.healthBar.Position = Vector2.new(barX, barTop + (barHeight - healthHeight))
+			data.healthBar.Size = Vector2.new(barWidth, healthHeight)
+			data.healthBar.Visible = true
+		else
+			data.healthBar.Visible = false
+			data.outlineBar.Visible = false
+			data.backgroundBar.Visible = false
+		end
+	end
+end)
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local CornerBoxEnabled = false
+local CornerBoxOutlineEnabled = false
+local CornerBoxColor = Color3.new(1, 1, 1)
+
+VisualsSections.VisualsESP:AddToggle({
+    enabled = true,
+    text = "Corner Box",
+    flag = "CornerBox",
+    risky = false,
+    callback = function(value)
+        CornerBoxEnabled = value
+    end
+})
+
+VisualsSections.VisualsCOLOR:AddColor({
+    enabled = true,
+    text = "Corner Box Color",
+    flag = "CornerBoxColor",
+    color = CornerBoxColor,
+    trans = 0,
+    open = false,
+    callback = function(value)
+        CornerBoxColor = value
+    end
+})
+
+local ESPData = {}
+
+local function createCornerBox(player)
+    local lines, outlines = {}, {}
+
+    for i = 1, 8 do
+        local line = Drawing.new("Line")
+        line.Visible = false
+        line.Color = CornerBoxColor
+        line.Thickness = 1
+        lines[i] = line
+
+        local outline = Drawing.new("Line")
+        outline.Visible = false
+        outline.Color = Color3.new(0, 0, 0)
+        outline.Thickness = 3
+        outlines[i] = outline
+    end
+
+    ESPData[player] = {
+        Lines = lines,
+        Outlines = outlines,
+        Character = player.Character or nil
+    }
+
+    player.CharacterAdded:Connect(function(char)
+        ESPData[player].Character = char
+    end)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        createCornerBox(player)
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    if player ~= LocalPlayer then
+        createCornerBox(player)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    local data = ESPData[player]
+    if data then
+        for _, line in ipairs(data.Lines) do line:Remove() end
+        for _, outline in ipairs(data.Outlines) do outline:Remove() end
+        ESPData[player] = nil
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    for player, data in pairs(ESPData) do
+        for i = 1, 8 do
+            data.Lines[i].Visible = false
+            data.Outlines[i].Visible = false
+        end
+
+        if not CornerBoxEnabled then continue end
+
+        local character = data.Character
+        if not character then continue end
+
+        local parts = {}
+        for _, part in ipairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                table.insert(parts, part)
+            end
+        end
+
+        local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
+        local onScreen = false
+
+        for _, part in ipairs(parts) do
+            local pos, visible = Camera:WorldToViewportPoint(part.Position)
+            if visible then
+                onScreen = true
+                minX = math.min(minX, pos.X)
+                maxX = math.max(maxX, pos.X)
+                minY = math.min(minY, pos.Y)
+                maxY = math.max(maxY, pos.Y)
+            end
+        end
+
+        if onScreen then
+            local padding = 2
+            minX, minY = minX - padding, minY - padding
+            maxX, maxY = maxX + padding, maxY + padding
+
+            local width = maxX - minX
+            local height = maxY - minY
+
+            -- Distance-based scale for height
+            local charPos = character:FindFirstChild("HumanoidRootPart") and character.HumanoidRootPart.Position or parts[1].Position
+            local distance = (Camera.CFrame.Position - charPos).Magnitude
+
+            -- Shrink corner lines slightly based on distance, but not too much
+            local baseX = width * 0.25
+            local baseY = height * 0.25
+
+            local scale = math.clamp(1 - (distance / 200), 0.4, 1)
+            local cornerLenX = math.clamp(baseX * scale, 6, 20)
+            local cornerLenY = math.clamp(baseY * scale, 6, 20)
+
+            local corners = {
+                -- Top Left
+                {Vector2.new(minX, minY), Vector2.new(minX + cornerLenX, minY)},
+                {Vector2.new(minX, minY), Vector2.new(minX, minY + cornerLenY)},
+                -- Top Right
+                {Vector2.new(maxX, minY), Vector2.new(maxX - cornerLenX, minY)},
+                {Vector2.new(maxX, minY), Vector2.new(maxX, minY + cornerLenY)},
+                -- Bottom Left
+                {Vector2.new(minX, maxY), Vector2.new(minX + cornerLenX, maxY)},
+                {Vector2.new(minX, maxY), Vector2.new(minX, maxY - cornerLenY)},
+                -- Bottom Right
+                {Vector2.new(maxX, maxY), Vector2.new(maxX - cornerLenX, maxY)},
+                {Vector2.new(maxX, maxY), Vector2.new(maxX, maxY - cornerLenY)},
+            }
+
+            for i = 1, 8 do
+                local from = corners[i][1]
+                local to = corners[i][2]
+
+                local line = data.Lines[i]
+                line.From = from
+                line.To = to
+                line.Color = CornerBoxColor
+                line.Visible = true
+
+                if CornerBoxOutlineEnabled then
+                    local outline = data.Outlines[i]
+                    outline.From = from + Vector2.new(1, 1)
+                    outline.To = to + Vector2.new(1, 1)
+                    outline.Visible = true
+                end
+            end
+        end
+    end
+end)
+
+--
+
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local ChamsEnabled = false
+local ChamsColor = Color3.new(1, 1, 1)
+local ChamsTransparency = 0.5
+local Highlights = {}
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "Chams",
+	flag = "cham",
+	risky = false,
+	callback = function(value)
+		ChamsEnabled = value
+		for _, highlight in pairs(Highlights) do
+			highlight.Enabled = value
+		end
+	end
+})
+
+VisualsSections.VisualsCOLOR:AddColor({
+	enabled = true,
+	text = "Chams Color",
+	flag = "Chams",
+	color = ChamsColor,
+	trans = 0,
+	open = false,
+	callback = function(value)
+		ChamsColor = value
+		for _, highlight in pairs(Highlights) do
+			highlight.FillColor = value
+		end
+	end
+})
+
+local function createCham(player)
+	if player == LocalPlayer then return end
+	if not player.Character then return end
+
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "ChamHighlight"
+	highlight.Adornee = player.Character
+	highlight.FillColor = ChamsColor
+	highlight.FillTransparency = ChamsTransparency
+	highlight.OutlineTransparency = 1
+	highlight.Enabled = ChamsEnabled
+	highlight.Parent = workspace
+
+	Highlights[player] = highlight
+end
+
+local function removeCham(player)
+	if Highlights[player] then
+		Highlights[player]:Destroy()
+		Highlights[player] = nil
+	end
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		player.CharacterAdded:Connect(function()
+			createCham(player)
+		end)
+		if player.Character then
+			createCham(player)
+		end
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function()
+		createCham(player)
+	end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	removeCham(player)
+end)
+
+RunService.RenderStepped:Connect(function()
+	for player, highlight in pairs(Highlights) do
+		if highlight and highlight.Adornee then
+			highlight.Enabled = ChamsEnabled
+			highlight.FillColor = ChamsColor
+		else
+			Highlights[player] = nil
+		end
+	end
+end)
+
+local healthTags = {}
+local healthColor = Color3.fromRGB(0, 255, 0)
+local outlineColor = Color3.fromRGB(0, 0, 0)
+local scaleMultiplier = 30
+local minSize = 12
+local maxSize = 18
+local defaultSize = 14
+local HealthTextEnabled = false
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "Health text",
+	flag = "HealthText",
+	risky = false,
+	callback = function(value)
+		HealthTextEnabled = value
+	end
+})
+
+VisualsSections.VisualsCOLOR:AddColor({
+	enabled = true,
+	text = "health text Color",
+	flag = "NameColor",
+	color = healthColor,
+	trans = 0,
+	open = false,
+	callback = function(value)
+		healthColor = value
+	end
+})
+
+local function isEnemy(player)
+	if not player.Team or not game.Players.LocalPlayer.Team then
+		return true
+	end
+	return player.Team ~= game.Players.LocalPlayer.Team
+end
+
+local function createHealthTag(player)
+	local healthDrawing = Drawing.new("Text")
+	healthDrawing.Text = ""
+	healthDrawing.Color = healthColor
+	healthDrawing.Outline = true
+	healthDrawing.OutlineColor = outlineColor
+	healthDrawing.Size = defaultSize
+	healthDrawing.Center = true
+	healthDrawing.Visible = false
+	healthTags[player] = healthDrawing
+end
+
+local function removeHealthTag(player)
+	if healthTags[player] then
+		healthTags[player]:Remove()
+		healthTags[player] = nil
+	end
+end
+
+for _, player in ipairs(game.Players:GetPlayers()) do
+	if player ~= game.Players.LocalPlayer then
+		createHealthTag(player)
+	end
+end
+
+game.Players.PlayerAdded:Connect(function(player)
+	if player ~= game.Players.LocalPlayer then
+		createHealthTag(player)
+	end
+end)
+
+game.Players.PlayerRemoving:Connect(function(player)
+	removeHealthTag(player)
+end)
+
+game:GetService("RunService").RenderStepped:Connect(function()
+	for player, tag in pairs(healthTags) do
+		if not HealthTextEnabled then
+			tag.Visible = false
+			continue
+		end
+		if not isEnemy(player) then
+			tag.Visible = false
+			continue
+		end
+		local character = player.Character
+		if character and character:FindFirstChild("Head") and character:FindFirstChild("Humanoid") then
+			local head = character.Head
+			local humanoid = character.Humanoid
+			local pos, onScreen = game.Workspace.CurrentCamera:WorldToViewportPoint(head.Position + Vector3.new(0, 2.5, 0))
+			if onScreen then
+				local distance = (game.Workspace.CurrentCamera.CFrame.Position - head.Position).Magnitude
+				local size = math.clamp(scaleMultiplier / distance, minSize, maxSize)
+				tag.Size = size
+				tag.Position = Vector2.new(pos.X, pos.Y - size) 
+				tag.Text = tostring(math.floor(humanoid.Health))
+				tag.Color = healthColor
+				tag.Visible = true
+			else
+				tag.Visible = false
+			end
+		else
+			tag.Visible = false
+		end
+	end
+end)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local DistanceTagsEnabled = false
+local NameTagsEnabled = false
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "Distance",
+	flag = "Distance",
+	risky = false,
+	callback = function(value)
+		DistanceTagsEnabled = value
+	end
+})
+
+VisualsSections.VisualsESP:AddToggle({
+	enabled = true,
+	text = "Name",
+	flag = "Name",
+	risky = false,
+	callback = function(value)
+		NameTagsEnabled = value
+	end
+})
+
+local distanceTags = {}
+local nameTags = {}
+local distanceColor = Color3.fromRGB(255, 255, 255)
+local nameColor = Color3.fromRGB(255, 255, 255)
+local outlineColor = Color3.new(0, 0, 0)
+local scaleMultiplier = 30
+local minSize = 12
+local maxSize = 18
+local defaultSize = 14
+local offsetBelowFeet = 3.5
+
+VisualsSections.VisualsCOLOR:AddColor({
+	enabled = true,
+	text = "Distance Color",
+	flag = "DistanceColor",
+	color = distanceColor,
+	trans = 0,
+	open = false,
+	callback = function(value)
+		distanceColor = value
+	end
+})
+
+VisualsSections.VisualsCOLOR:AddColor({
+	enabled = true,
+	text = "Name Color",
+	flag = "NameColor",
+	color = nameColor,
+	trans = 0,
+	open = false,
+	callback = function(value)
+		nameColor = value
+	end
+})
+
+local function isEnemy(player)
+	if not player.Team or not LocalPlayer.Team then
+		return true
+	end
+	return player.Team ~= LocalPlayer.Team
+end
+
+local function createDistanceTag(player)
+	if not isEnemy(player) then return end
+	local distanceDrawing = Drawing.new("Text")
+	distanceDrawing.Text = ""
+	distanceDrawing.Color = distanceColor
+	distanceDrawing.Outline = true
+	distanceDrawing.OutlineColor = outlineColor
+	distanceDrawing.Size = defaultSize
+	distanceDrawing.Center = true
+	distanceDrawing.Visible = false
+	distanceTags[player] = distanceDrawing
+end
+
+local function removeDistanceTag(player)
+	if distanceTags[player] then
+		distanceTags[player]:Remove()
+		distanceTags[player] = nil
+	end
+end
+
+local function createNameTag(player)
+	local nameDrawing = Drawing.new("Text")
+	nameDrawing.Text = player.Name
+	nameDrawing.Color = nameColor
+	nameDrawing.Outline = true
+	nameDrawing.OutlineColor = outlineColor
+	nameDrawing.Size = defaultSize
+	nameDrawing.Center = true
+	nameDrawing.Visible = false
+	nameTags[player] = nameDrawing
+end
+
+local function removeNameTag(player)
+	if nameTags[player] then
+		nameTags[player]:Remove()
+		nameTags[player] = nil
+	end
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		createDistanceTag(player)
+		createNameTag(player)
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	if player ~= LocalPlayer then
+		createDistanceTag(player)
+		createNameTag(player)
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	removeDistanceTag(player)
+	removeNameTag(player)
+end)
+
+RunService.RenderStepped:Connect(function()
+	for player, tag in pairs(distanceTags) do
+		if not DistanceTagsEnabled then
+			tag.Visible = false
+			continue
+		end
+		if not isEnemy(player) then
+			tag.Visible = false
+			continue
+		end
+		local character = player.Character
+		if character and character:FindFirstChild("HumanoidRootPart") then
+			local hrp = character.HumanoidRootPart
+			local targetPos = hrp.Position - Vector3.new(0, offsetBelowFeet, 0)
+			local pos, onScreen = Camera:WorldToViewportPoint(targetPos)
+			if onScreen then
+				local distance = math.floor((Camera.CFrame.Position - hrp.Position).Magnitude + 0.5)
+				local size = math.clamp(scaleMultiplier / distance, minSize, maxSize)
+				tag.Size = size
+				tag.Position = Vector2.new(pos.X, pos.Y)
+				tag.Text = "Dist [" .. tostring(distance) .. "m]"
+				tag.Color = distanceColor
+				tag.Visible = true
+			else
+				tag.Visible = false
+			end
+		else
+			tag.Visible = false
+		end
+	end
+	for player, tag in pairs(nameTags) do
+		if not NameTagsEnabled then
+			tag.Visible = false
+			continue
+		end
+		local character = player.Character
+		if character and character:FindFirstChild("Head") then
+			local head = character.Head
+			local pos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 2, 0))
+			if onScreen then
+				local distance = (Camera.CFrame.Position - head.Position).Magnitude
+				local size = math.clamp(scaleMultiplier / distance, minSize, maxSize)
+				tag.Size = size
+				tag.Position = Vector2.new(pos.X, pos.Y - size)
+				tag.Text = player.Name
+				tag.Color = nameColor
+				tag.Visible = true
+			else
+				tag.Visible = false
+			end
+		else
+			tag.Visible = false
+		end
+	end
+end)
+
+
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local arrows = {}
+local radius = 100
+local arrowSize = 10
+
+local arrowColor = Color3.new(1, 1, 1)
+local arrowsEnabled = false
+
+VisualsSections.VisualsCOLOR:AddColor({
+	enabled = true,
+	text = "Offscreen Arrows Color",
+	flag = "Health",
+	color = arrowColor,
+	trans = 0,
+	open = false,
+	callback = function(value)
+		arrowColor = value
+	end
+})
+
+VisualsSections.VisualsOffscreen:AddToggle({
+	enabled = true,
+	text = "Offscreen Arrows",
+	flag = "OffscreenArrows",
+	risky = false,
+	callback = function(value)
+		arrowsEnabled = value
+	end
+})
+
+VisualsSections.VisualsOffscreen:AddSlider({
+	text = "Arrow Size", 
+	flag = "ArrowSize", 
+	suffix = "", 
+	value = 10,
+	min = 5, 
+	max = 50,
+	increment = 1,
+	risky = false,
+	callback = function(value)
+		arrowSize = value
+	end
+})
+
+local arrowDistance = 100
+VisualsSections.VisualsOffscreen:AddSlider({
+	text = "Arrow Distance", 
+	flag = "ArrowDistance", 
+	suffix = "", 
+	value = 100,
+	min = 50, 
+	max = 300,
+	increment = 1,
+	risky = false,
+	callback = function(value)
+		arrowDistance = value
+	end
+})
+
+local function CreateArrow(player)
+	local arrow = Drawing.new("Triangle")
+	arrow.Visible = false
+	arrow.Color = arrowColor
+	arrow.Filled = true
+	arrows[player] = arrow
+end
+
+local function UpdateArrows()
+	if not arrowsEnabled then
+		for _, arrow in pairs(arrows) do
+			arrow.Visible = false
+		end
+		return
+	end
+
+	local centerX, centerY = Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2
+
+	for player, arrow in pairs(arrows) do
+		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local root = player.Character.HumanoidRootPart
+			local screenPos, onScreen = Camera:WorldToViewportPoint(root.Position)
+
+			if not onScreen and root.Position then
+				arrow.Visible = true
+				arrow.Color = arrowColor
+
+				local direction = Vector2.new(screenPos.X - centerX, screenPos.Y - centerY)
+				local unitDir = direction.Unit
+				local arrowPos = Vector2.new(centerX, centerY) + unitDir * arrowDistance
+
+				local angle = math.atan2(unitDir.Y, unitDir.X)
+
+				arrow.PointA = arrowPos
+				arrow.PointB = arrowPos + Vector2.new(math.cos(angle + math.rad(150)), math.sin(angle + math.rad(150))) * arrowSize
+				arrow.PointC = arrowPos + Vector2.new(math.cos(angle - math.rad(150)), math.sin(angle - math.rad(150))) * arrowSize
+				arrow.Thickness = arrowSize / 5
+			else
+				arrow.Visible = false
+			end
+		end
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	if player ~= LocalPlayer then
+		CreateArrow(player)
+	end
+end)
+
+for _, player in pairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		CreateArrow(player)
+	end
+end
+
+RunService.RenderStepped:Connect(UpdateArrows)
+
+local RageSections = {
+	Character = tabs.Tab4:AddSection("Character shit", 1),
+	GunShit = tabs.Tab4:AddSection("GunShit", 2),
+}
+--
+
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local NoGunZoomEnabled = false
+
+local zoomFOV = 120
+
+RunService.RenderStepped:Connect(function()
+    if NoGunZoomEnabled then
+        camera.FieldOfView = zoomFOV
+    end
+end)
+
+player.Backpack.ChildAdded:Connect(function(tool)
+    tool.Activated:Connect(function()
+        if NoGunZoomEnabled then
+            camera.FieldOfView = zoomFOV
+        end
+    end)
+end)
+
+RageSections.GunShit:AddToggle({
+    enabled = true,
+    text = "No Gun Zoom",
+	tooltip = "Also uses 120 fov",
+    flag = "NoGunZoom",
+    risky = false,
+    callback = function(value)
+        NoGunZoomEnabled = value
+    end
+})
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local RemoveScopeEnabled = false
+
+local originalCircle
+local originalBlur
+
+local function removeScopeEffects()
+    local scope = player.PlayerGui.MainGui.MainFrame.ItemInterfaces[player.Name .. " - Sniper"].Mouse.Scope
+    if not originalCircle then
+        originalCircle = scope:FindFirstChild("Circle") and scope.Circle:Clone()
+    end
+    if not originalBlur then
+        originalBlur = scope:FindFirstChild("Blur") and scope.Blur:Clone()
+    end
+    local circle = scope:FindFirstChild("Circle")
+    if circle then
+        circle:Destroy()
+    end
+    local blur = scope:FindFirstChild("Blur")
+    if blur then
+        blur:Destroy()
+    end
+end
+
+local function restoreScopeEffects()
+    local scope = player.PlayerGui.MainGui.MainFrame.ItemInterfaces[player.Name .. " - Sniper"].Mouse.Scope
+    if originalCircle and not scope:FindFirstChild("Circle") then
+        originalCircle:Clone().Parent = scope
+    end
+    if originalBlur and not scope:FindFirstChild("Blur") then
+        originalBlur:Clone().Parent = scope
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        if RemoveScopeEnabled then
+            removeScopeEffects()
+        else
+            restoreScopeEffects()
+        end
+    end)
+end)
+
+RageSections.GunShit:AddToggle({
+    enabled = true,
+    text = "No Sniper Scope",
+    flag = "SniperScope",
+    risky = false,
+    callback = function(value)
+        RemoveScopeEnabled = value
+    end
+})
+
+--
+local blocked = {
+	["rbxassetid://13154881027"] = true,
+	["rbxassetid://13154885740"] = true,
+	["rbxassetid://13204428113"] = true,
+	["rbxassetid://14138281432"] = true,
+	["rbxassetid://14240539145"] = true,
+	["rbxassetid://13642513747"] = true,
+	["rbxassetid://13642520989"] = true,
+	["rbxassetid://13676489206"] = true,
+	["rbxassetid://13512545291"] = true,
+	["rbxassetid://83184613322262"] = true,
+	["rbxassetid://134694404748023"] = true,
+	["rbxassetid://13269963346"] = true,
+	["rbxassetid://70595132902958"] = true,
+	["rbxassetid://110216216870037"] = true,
+	["rbxassetid://136507313237137"] = true,
+	["rbxassetid://91782309305074"] = true,
+	["rbxassetid://129248911141724"] = true,
+	["rbxassetid://13471217688"] = true,
+	["rbxassetid://13335195024"] = true,
+	["rbxassetid://13335191169"] = true,
+	["rbxassetid://13010911854"] = true,
+	["rbxassetid://17279511949"] = true,
+	["rbxassetid://17246064123"] = true,
+	["rbxassetid://17246072427"] = true,
+	["rbxassetid://17246078139"] = true,
+    ["rbxassetid://123114191854550"] = true,
+    ["rbxassetid://74256235556369"] = true,
+    ["rbxassetid://122042727533904"] = true,
+    ["rbxassetid://17091647837"] = true,
+    ["rbxassetid://87109276416874"] = true,
+    ["rbxassetid://106792693952041"] = true,
+    ["rbxassetid://17274291035"] = true,
+    ["rbxassetid://17266006385"] = true,
+    ["rbxassetid://17092050680"] = true
+}
+
+local RunAndShootEnabled = false
+
+local function preventAnim(track)
+	if RunAndShootEnabled and track and track.Animation and blocked[track.Animation.AnimationId] then
+		track:AdjustWeight(0)
+		track:Stop()
+		track:Destroy()
+	end
+end
+
+local function monitorAnimator(animator)
+	animator.AnimationPlayed:Connect(preventAnim)
+end
+
+local function monitorDescendant(desc)
+	if desc:IsA("AnimationController") or desc:IsA("Animator") then
+		monitorAnimator(desc)
+	end
+end
+
+for _, v in pairs(workspace:GetDescendants()) do
+	monitorDescendant(v)
+end
+
+workspace.DescendantAdded:Connect(function(desc)
+	monitorDescendant(desc)
+end)
+
+RageSections.GunShit:AddToggle({
+	enabled = true,
+	text = "Run and shoot",
+	tooltip = "works with sum guns",
+	flag = "Runnshoot",
+	risky = false,
+	callback = function(value)
+		RunAndShootEnabled = value
+	end
+})
+
+--
+checkcaller = checkcaller
+newcclosure = newcclosure
+hookmetamethod = hookmetamethod
+
+local PastedSources = false
+local BruhXD = game:GetService("RunService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Bullshit = LocalPlayer:GetMouse()
+
+Bullshit.KeyDown:Connect(function(SayNoToOblivity)
+	if SayNoToOblivity == ("=") then
+		game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) 
+	end
+end)
+
+function RandomNumberRange(a)
+	return math.random(-a * 100, a * 100) / 100
+end
+
+function RandomVectorRange(a, b, c)
+	return Vector3.new(RandomNumberRange(a), RandomNumberRange(b), RandomNumberRange(c))
+end
+
+local DesyncTypes = {}
+BruhXD.Heartbeat:Connect(function()
+	if PastedSources == true then
+		DesyncTypes[1] = LocalPlayer.Character.HumanoidRootPart.CFrame
+		DesyncTypes[2] = LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity
+
+		local SpoofThis = LocalPlayer.Character.HumanoidRootPart.CFrame
+		SpoofThis = SpoofThis * CFrame.Angles(math.rad(RandomNumberRange(180)), math.rad(RandomNumberRange(180)), math.rad(RandomNumberRange(180)))
+
+		LocalPlayer.Character.HumanoidRootPart.CFrame = SpoofThis
+
+		BruhXD.RenderStepped:Wait()
+
+		LocalPlayer.Character.HumanoidRootPart.CFrame = DesyncTypes[1]
+		LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity = DesyncTypes[2]
+	end
+end)
+
+local XDDDDDD = nil
+XDDDDDD = hookmetamethod(game, "__index", newcclosure(function(self, key)
+	if PastedSources == true then
+		if not checkcaller() then
+			if key == "CFrame" and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("Humanoid") and LocalPlayer.Character.Humanoid.Health > 0 then
+				if self == LocalPlayer.Character.HumanoidRootPart then
+					return DesyncTypes[1] or CFrame.new()
+				elseif self == LocalPlayer.Character.Head then
+					return DesyncTypes[1] and DesyncTypes[1] + Vector3.new(0, LocalPlayer.Character.HumanoidRootPart.Size.Y / 2 + 0.5, 0) or CFrame.new()
+				end
+			end
+		end
+	end
+	return XDDDDDD(self, key)
+end))
+
+RageSections.Character:AddToggle({
+	enabled = true,
+	text = "Anti-Aim",
+	flag = "Anti-Aim",
+	risky = true,
+	callback = function(value)
+		PastedSources = value
+	end
+})
+
+--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local flyEnabled = false
+local flySpeed = 50
+local walkspeedEnabled = false
+local walkspeedValue = 16
+
+local flyData = {}
+
+RageSections.Character:AddToggle({
+	enabled = true,
+	text = "Fly",
+	flag = "Fly",
+	risky = true,
+	callback = function(value)
+		flyEnabled = value
+		if LocalPlayer.Character then
+			ApplyFly(LocalPlayer.Character)
+		end
+	end
+})
+
+RageSections.Character:AddSlider({
+	text = "Fly Speed", 
+	flag = "FlySpeed", 
+	suffix = "", 
+	value = flySpeed,
+	min = 1, 
+	max = 200,
+	increment = 1,
+	risky = true,
+	callback = function(value)
+		flySpeed = value
+	end
+})
+
+RageSections.Character:AddToggle({
+	enabled = true,
+	text = "WalkSpeed",
+	flag = "Walkspeed",
+	risky = true,
+	callback = function(value)
+		walkspeedEnabled = value
+	end
+})
+
+RageSections.Character:AddSlider({
+	text = "Walkspeed", 
+	flag = "Walkspeedss", 
+	suffix = "", 
+	value = walkspeedValue,
+	min = 1, 
+	max = 360,
+	increment = 1,
+	risky = true,
+	callback = function(value)
+		walkspeedValue = value
+	end
+})
+
+function ApplyFly(character)
+	if not flyEnabled then return end
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	if flyData[character] then
+		if flyData[character].bv then flyData[character].bv:Destroy() end
+		if flyData[character].bg then flyData[character].bg:Destroy() end
+		if flyData[character].connection then flyData[character].connection:Disconnect() end
+		flyData[character] = nil
+	end
+
+	local bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(0, 0, 0)
+	bv.Velocity = Vector3.new()
+	bv.Parent = hrp
+
+	local bg = Instance.new("BodyGyro")
+	bg.MaxTorque = Vector3.new(0, 0, 0)
+	bg.CFrame = hrp.CFrame
+	bg.Parent = hrp
+
+	local connection
+	connection = RunService.RenderStepped:Connect(function()
+		if not flyEnabled or not hrp.Parent then
+			bv.MaxForce = Vector3.new(0, 0, 0)
+			bg.MaxTorque = Vector3.new(0, 0, 0)
+			return
+		end
+
+		bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+		bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+
+		local moveDirection = Vector3.new()
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			moveDirection = moveDirection + Camera.CFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			moveDirection = moveDirection - Camera.CFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			moveDirection = moveDirection - Camera.CFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			moveDirection = moveDirection + Camera.CFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+			moveDirection = moveDirection + Vector3.new(0, 1, 0)
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+			moveDirection = moveDirection - Vector3.new(0, 1, 0)
+		end
+
+		if moveDirection.Magnitude > 0 then
+			moveDirection = moveDirection.Unit
+		end
+
+		bv.Velocity = moveDirection * flySpeed
+		bg.CFrame = Camera.CFrame
+	end)
+
+	flyData[character] = {bv = bv, bg = bg, connection = connection}
+end
+
+function ApplyWalkspeed()
+	RunService.RenderStepped:Connect(function()
+		if not walkspeedEnabled then return end
+		local character = LocalPlayer.Character
+		if not character then return end
+		local hrp = character:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+
+		local moveDirection = Vector3.new()
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			moveDirection = moveDirection + Camera.CFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			moveDirection = moveDirection - Camera.CFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			moveDirection = moveDirection - Camera.CFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			moveDirection = moveDirection + Camera.CFrame.RightVector
+		end
+
+		if moveDirection.Magnitude > 0 then
+			moveDirection = moveDirection.Unit
+			hrp.CFrame = hrp.CFrame + moveDirection * (walkspeedValue / 50)
+		end
+	end)
+end
+
+local function EnforceToggles()
+	RunService.Heartbeat:Connect(function()
+		local character = LocalPlayer.Character
+		if character then
+			if flyEnabled and not flyData[character] then
+				ApplyFly(character)
+			end
+		end
+	end)
+end
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+	task.wait(0.1)
+	ApplyFly(character)
+end)
+
+if LocalPlayer.Character then
+	ApplyFly(LocalPlayer.Character)
+end
+
+ApplyWalkspeed()
+EnforceToggles()
+
+local function toggleTableAttribute(attribute, value)
+    for _, gcVal in pairs(getgc(true)) do
+        if type(gcVal) == "table" and rawget(gcVal, attribute) then
+            gcVal[attribute] = value
+        end
+    end
+end
+
+--
+local RapidFireEnabled = false
+local NoRecoilEnabled = false
+local FunnyRecoilEnabled = false
+local NoSpreadEnabled = false
+local RapidFireSpeed = 0.1
+
+RageSections.GunShit:AddToggle({
+	enabled = true,
+	text = "No Recoil",
+	flag = "NoRecoil",
+	risky = true,
+	callback = function(value)
+		NoRecoilEnabled = value
+		toggleTableAttribute("ShootRecoil", value and 0 or 1)
+	end
+})
+
+RageSections.GunShit:AddToggle({
+	enabled = true,
+	text = "Rapid Fire",
+	flag = "RapidFire",
+	risky = true,
+	callback = function(value)
+		RapidFireEnabled = value
+		toggleTableAttribute("ShootCooldown", value and 0 or RapidFireSpeed)
+	end
+})
+
+RageSections.GunShit:AddToggle({
+	enabled = true,
+	text = "Funny Recoil",
+	flag = "FunnyRecoil",
+	risky = true,
+	callback = function(value)
+		FunnyRecoilEnabled = value
+		toggleTableAttribute("ShootRecoil", value and 100 or 1)
+	end
+})
+
+RageSections.GunShit:AddToggle({
+	enabled = true,
+	text = "Nospread",
+	flag = "Nospread",
+	risky = true,
+	callback = function(value)
+		NoSpreadEnabled = value
+		toggleTableAttribute("ShootSpread", value and 0 or 1)
+	end
+})
+
+local ViewmodelsSections = {
+	ViewmodelGun = tabs.Tab5:AddSection("Gun", 1),
+	Viewmodel = tabs.Tab5:AddSection("Arms", 2),
+	Colors = tabs.Tab5:AddSection("Colors", 2),
+	Anims = tabs.Tab5:AddSection("Anims", 1),
+}
+
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local viewModels = Workspace:WaitForChild("ViewModels")
+local firstPersonModel = viewModels:WaitForChild("FirstPerson")
+
+local function isArmPart(part)
+    local name = part.Name:lower()
+    return name:find("arm") or name:find("hand")
+end
+
+local function isGunPart(part)
+    return not isArmPart(part)
+end
+
+local armParts, gunParts = {}, {}
+local armOriginalProps, gunOriginalProps = {}, {}
+
+local armFFEnabled, gunFFEnabled = false, false
+local armRainbowFFEnabled, gunRainbowFFEnabled = false, false
+local armFFColor, gunFFColor = Color3.new(1, 1, 1), Color3.new(1, 1, 1)
+
+local function getRainbowColor(offset)
+    return Color3.fromHSV((tick() * 0.2 + offset) % 1, 1, 1)
+end
+
+local function refreshParts()
+    armParts, gunParts = {}, {}
+    armOriginalProps, gunOriginalProps = {}, {}
+    for _, part in ipairs(firstPersonModel:GetDescendants()) do
+        if part:IsA("BasePart") and part.Transparency < 1 then
+            local props = {
+                Material = part.Material,
+                Transparency = part.Transparency,
+                Color = part.Color
+            }
+            if isArmPart(part) then
+                armParts[#armParts + 1] = part
+                armOriginalProps[part] = props
+                if armFFEnabled or armRainbowFFEnabled then
+                    part.Material = Enum.Material.ForceField
+                    part.Transparency = 0.3
+                end
+            else
+                gunParts[#gunParts + 1] = part
+                gunOriginalProps[part] = props
+                if gunFFEnabled or gunRainbowFFEnabled then
+                    part.Material = Enum.Material.ForceField
+                    part.Transparency = 0.3
+                end
+            end
+        end
+    end
+end
+
+local function resetParts(parts, props)
+    for part, p in pairs(props) do
+        if part and part.Parent then
+            part.Material = p.Material
+            part.Transparency = p.Transparency
+            part.Color = p.Color
+        end
+    end
+end
+
+refreshParts()
+
+firstPersonModel.DescendantAdded:Connect(function(desc)
+    if desc:IsA("BasePart") and desc.Transparency < 1 then
+        local props = {
+            Material = desc.Material,
+            Transparency = desc.Transparency,
+            Color = desc.Color
+        }
+        if isArmPart(desc) then
+            armParts[#armParts + 1] = desc
+            armOriginalProps[desc] = props
+            if armFFEnabled or armRainbowFFEnabled then
+                desc.Material = Enum.Material.ForceField
+                desc.Transparency = 0.3
+            end
+        else
+            gunParts[#gunParts + 1] = desc
+            gunOriginalProps[desc] = props
+            if gunFFEnabled or gunRainbowFFEnabled then
+                desc.Material = Enum.Material.ForceField
+                desc.Transparency = 0.3
+            end
+        end
+    end
+end)
+
+firstPersonModel.AncestryChanged:Connect(function(_, parent)
+    if parent then
+        refreshParts()
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if armRainbowFFEnabled then
+        for i, part in ipairs(armParts) do
+            if part and part.Parent then
+                part.Color = getRainbowColor(i / #armParts)
+            end
+        end
+    end
+    if gunRainbowFFEnabled then
+        for i, part in ipairs(gunParts) do
+            if part and part.Parent then
+                part.Color = getRainbowColor(i / #gunParts)
+            end
+        end
+    end
+end)
+
+ViewmodelsSections.Colors:AddColor({
+    enabled = true,
+    text = "Arm ForceField Color",
+    flag = "ArmFFColor",
+    color = Color3.new(1, 1, 1),
+    trans = 0,
+    open = false,
+    callback = function(value)
+        armFFColor = value
+        if armFFEnabled then
+            for _, part in ipairs(armParts) do
+                if part and part.Parent then
+                    part.Color = armFFColor
+                end
+            end
+        end
+    end
+})
+
+ViewmodelsSections.Colors:AddColor({
+    enabled = true,
+    text = "Gun ForceField Color",
+    flag = "GunFFColor",
+    color = Color3.new(1, 1, 1),
+    trans = 0,
+    open = false,
+    callback = function(value)
+        gunFFColor = value
+        if gunFFEnabled then
+            for _, part in ipairs(gunParts) do
+                if part and part.Parent then
+                    part.Color = gunFFColor
+                end
+            end
+        end
+    end
+})
+
+ViewmodelsSections.Viewmodel:AddToggle({
+    enabled = true,
+    text = "Arm ForceField",
+    flag = "ArmFFToggle",
+    risky = false,
+    callback = function(value)
+        armFFEnabled = value
+        armRainbowFFEnabled = false
+        if armFFEnabled then
+            refreshParts()
+            for _, part in ipairs(armParts) do
+                part.Material = Enum.Material.ForceField
+                part.Transparency = 0.3
+                part.Color = armFFColor
+            end
+        else
+            resetParts(armParts, armOriginalProps)
+        end
+    end
+})
+
+ViewmodelsSections.ViewmodelGun:AddToggle({
+    enabled = true,
+    text = "Gun ForceField",
+    flag = "GunFFToggle",
+    risky = false,
+    callback = function(value)
+        gunFFEnabled = value
+        gunRainbowFFEnabled = false
+        if gunFFEnabled then
+            refreshParts()
+            for _, part in ipairs(gunParts) do
+                part.Material = Enum.Material.ForceField
+                part.Transparency = 0.3
+                part.Color = gunFFColor
+            end
+        else
+            resetParts(gunParts, gunOriginalProps)
+        end
+    end
+})
+
+ViewmodelsSections.Viewmodel:AddToggle({
+    enabled = true,
+    text = "Arm Rainbow ForceField",
+    flag = "ArmRainbowFFToggle",
+    risky = false,
+    callback = function(value)
+        armRainbowFFEnabled = value
+        armFFEnabled = false
+        if armRainbowFFEnabled then
+            refreshParts()
+            for _, part in ipairs(armParts) do
+                part.Material = Enum.Material.ForceField
+                part.Transparency = 0.3
+            end
+        else
+            resetParts(armParts, armOriginalProps)
+        end
+    end
+})
+
+ViewmodelsSections.ViewmodelGun:AddToggle({
+    enabled = true,
+    text = "Gun Rainbow ForceField",
+    flag = "GunRainbowFFToggle",
+    risky = false,
+    callback = function(value)
+        gunRainbowFFEnabled = value
+        gunFFEnabled = false
+        if gunRainbowFFEnabled then
+            refreshParts()
+            for _, part in ipairs(gunParts) do
+                part.Material = Enum.Material.ForceField
+                part.Transparency = 0.3
+            end
+        else
+            resetParts(gunParts, gunOriginalProps)
+        end
+    end
+})
+
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local viewModels = Workspace:WaitForChild("ViewModels")
+local firstPersonModel = viewModels:WaitForChild("FirstPerson")
+
+local function isArmPart(part)
+    local name = part.Name:lower()
+    return name:find("arm") or name:find("hand")
+end
+
+local function isGunPart(part)
+    return not isArmPart(part)
+end
+
+local armParts, gunParts = {}, {}
+local armOriginalProps, gunOriginalProps = {}, {}
+
+local armSolidEnabled, gunSolidEnabled = false, false
+local armSolidColor, gunSolidColor = Color3.new(1, 1, 1), Color3.new(1, 1, 1)
+local armSolidTransparency, gunSolidTransparency = 0, 0
+
+local function refreshParts()
+    armParts, gunParts = {}, {}
+    armOriginalProps, gunOriginalProps = {}, {}
+    for _, part in ipairs(firstPersonModel:GetDescendants()) do
+        if part:IsA("BasePart") and part.Transparency < 1 then
+            local props = {
+                Material = part.Material,
+                Transparency = part.Transparency,
+                Color = part.Color
+            }
+            if isArmPart(part) then
+                armParts[#armParts + 1] = part
+                armOriginalProps[part] = props
+                if armSolidEnabled then
+                    part.Material = Enum.Material.SmoothPlastic
+                    part.Transparency = armSolidTransparency
+                    part.Color = armSolidColor
+                end
+            else
+                gunParts[#gunParts + 1] = part
+                gunOriginalProps[part] = props
+                if gunSolidEnabled then
+                    part.Material = Enum.Material.SmoothPlastic
+                    part.Transparency = gunSolidTransparency
+                    part.Color = gunSolidColor
+                end
+            end
+        end
+    end
+end
+
+local function resetParts(parts, props)
+    for part, p in pairs(props) do
+        if part and part.Parent then
+            part.Material = p.Material
+            part.Transparency = p.Transparency
+            part.Color = p.Color
+        end
+    end
+end
+
+refreshParts()
+
+firstPersonModel.DescendantAdded:Connect(function(desc)
+    if desc:IsA("BasePart") and desc.Transparency < 1 then
+        local props = {
+            Material = desc.Material,
+            Transparency = desc.Transparency,
+            Color = desc.Color
+        }
+        if isArmPart(desc) then
+            armParts[#armParts + 1] = desc
+            armOriginalProps[desc] = props
+            if armSolidEnabled then
+                desc.Material = Enum.Material.SmoothPlastic
+                desc.Transparency = armSolidTransparency
+                desc.Color = armSolidColor
+            end
+        else
+            gunParts[#gunParts + 1] = desc
+            gunOriginalProps[desc] = props
+            if gunSolidEnabled then
+                desc.Material = Enum.Material.SmoothPlastic
+                desc.Transparency = gunSolidTransparency
+                desc.Color = gunSolidColor
+            end
+        end
+    end
+end)
+
+firstPersonModel.AncestryChanged:Connect(function(_, parent)
+    if parent then
+        refreshParts()
+    end
+end)
+
+ViewmodelsSections.Colors:AddColor({
+    enabled = true,
+    text = "Arm Solid Color",
+    flag = "ArmSolidColor",
+    color = Color3.new(1, 1, 1),
+    trans = 0,
+    open = false,
+    callback = function(value)
+        armSolidColor = value
+        if armSolidEnabled then
+            for _, part in ipairs(armParts) do
+                if part and part.Parent then
+                    part.Color = armSolidColor
+                end
+            end
+        end
+    end
+})
+
+ViewmodelsSections.Colors:AddColor({
+    enabled = true,
+    text = "Gun Solid Color",
+    flag = "GunSolidColor",
+    color = Color3.new(1, 1, 1),
+    trans = 0,
+    open = false,
+    callback = function(value)
+        gunSolidColor = value
+        if gunSolidEnabled then
+            for _, part in ipairs(gunParts) do
+                if part and part.Parent then
+                    part.Color = gunSolidColor
+                end
+            end
+        end
+    end
+})
+
+ViewmodelsSections.Viewmodel:AddToggle({
+    enabled = true,
+    text = "Arm Solid",
+    flag = "ArmSolidToggle",
+    risky = false,
+    callback = function(value)
+        armSolidEnabled = value
+        if armSolidEnabled then
+            refreshParts()
+            for _, part in ipairs(armParts) do
+                part.Material = Enum.Material.SmoothPlastic
+                part.Transparency = armSolidTransparency
+                part.Color = armSolidColor
+            end
+        else
+            resetParts(armParts, armOriginalProps)
+        end
+    end
+})
+
+ViewmodelsSections.ViewmodelGun:AddToggle({
+    enabled = true,
+    text = "Gun Solid",
+    flag = "GunSolidToggle",
+    risky = false,
+    callback = function(value)
+        gunSolidEnabled = value
+        if gunSolidEnabled then
+            refreshParts()
+            for _, part in ipairs(gunParts) do
+                part.Material = Enum.Material.SmoothPlastic
+                part.Transparency = gunSolidTransparency
+                part.Color = gunSolidColor
+            end
+        else
+            resetParts(gunParts, gunOriginalProps)
+        end
+    end
+})
+
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local viewModels = Workspace:WaitForChild("ViewModels")
+local firstPersonModel = viewModels:WaitForChild("FirstPerson")
+
+local function isArmPart(part)
+    local name = part.Name:lower()
+    return name:find("arm") or name:find("hand")
+end
+
+local function isGunPart(part)
+    return not isArmPart(part)
+end
+
+local armParts, gunParts = {}, {}
+local armOriginalProps, gunOriginalProps = {}, {}
+
+local armRainbowSolidEnabled, gunRainbowSolidEnabled = false, false
+local armSolidTransparency, gunSolidTransparency = 0, 0
+
+local function getRainbowColor(offset)
+    return Color3.fromHSV((tick() * 0.2 + offset) % 1, 1, 1)
+end
+
+local function refreshParts()
+    armParts, gunParts = {}, {}
+    armOriginalProps, gunOriginalProps = {}, {}
+    for _, part in ipairs(firstPersonModel:GetDescendants()) do
+        if part:IsA("BasePart") and part.Transparency < 1 then
+            local props = {
+                Material = part.Material,
+                Transparency = part.Transparency,
+                Color = part.Color
+            }
+            if isArmPart(part) then
+                armParts[#armParts + 1] = part
+                armOriginalProps[part] = props
+                if armRainbowSolidEnabled then
+                    part.Material = Enum.Material.SmoothPlastic
+                    part.Transparency = armSolidTransparency
+                end
+            else
+                gunParts[#gunParts + 1] = part
+                gunOriginalProps[part] = props
+                if gunRainbowSolidEnabled then
+                    part.Material = Enum.Material.SmoothPlastic
+                    part.Transparency = gunSolidTransparency
+                end
+            end
+        end
+    end
+end
+
+local function resetParts(parts, props)
+    for part, p in pairs(props) do
+        if part and part.Parent then
+            part.Material = p.Material
+            part.Transparency = p.Transparency
+            part.Color = p.Color
+        end
+    end
+end
+
+refreshParts()
+
+firstPersonModel.DescendantAdded:Connect(function(desc)
+    if desc:IsA("BasePart") and desc.Transparency < 1 then
+        local props = {
+            Material = desc.Material,
+            Transparency = desc.Transparency,
+            Color = desc.Color
+        }
+        if isArmPart(desc) then
+            armParts[#armParts + 1] = desc
+            armOriginalProps[desc] = props
+            if armRainbowSolidEnabled then
+                desc.Material = Enum.Material.SmoothPlastic
+                desc.Transparency = armSolidTransparency
+            end
+        else
+            gunParts[#gunParts + 1] = desc
+            gunOriginalProps[desc] = props
+            if gunRainbowSolidEnabled then
+                desc.Material = Enum.Material.SmoothPlastic
+                desc.Transparency = gunSolidTransparency
+            end
+        end
+    end
+end)
+
+firstPersonModel.AncestryChanged:Connect(function(_, parent)
+    if parent then
+        refreshParts()
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if armRainbowSolidEnabled then
+        for i, part in ipairs(armParts) do
+            if part and part.Parent then
+                part.Color = getRainbowColor(i / #armParts)
+            end
+        end
+    end
+    if gunRainbowSolidEnabled then
+        for i, part in ipairs(gunParts) do
+            if part and part.Parent then
+                part.Color = getRainbowColor(i / #gunParts)
+            end
+        end
+    end
+end)
+
+ViewmodelsSections.Viewmodel:AddToggle({
+    enabled = true,
+    text = "Arm Solid Rainbow",
+    flag = "ArmSolidRainbowToggle",
+    risky = false,
+    callback = function(value)
+        armRainbowSolidEnabled = value
+        if armRainbowSolidEnabled then
+            refreshParts()
+            for _, part in ipairs(armParts) do
+                part.Material = Enum.Material.SmoothPlastic
+                part.Transparency = armSolidTransparency
+            end
+        else
+            resetParts(armParts, armOriginalProps)
+        end
+    end
+})
+
+ViewmodelsSections.ViewmodelGun:AddToggle({
+    enabled = true,
+    text = "Gun Solid Rainbow",
+    flag = "GunSolidRainbowToggle",
+    risky = false,
+    callback = function(value)
+        gunRainbowSolidEnabled = value
+        if gunRainbowSolidEnabled then
+            refreshParts()
+            for _, part in ipairs(gunParts) do
+                part.Material = Enum.Material.SmoothPlastic
+                part.Transparency = gunSolidTransparency
+            end
+        else
+            resetParts(gunParts, gunOriginalProps)
+        end
+    end
+})
+
+
+-- wowwwwww
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local viewModels = Workspace:WaitForChild("ViewModels")
+local firstPersonModel = viewModels:WaitForChild("FirstPerson")
+
+local animationTracks = {}
+local isToggleOn = false
+local activeAnimationId = nil
+
+local function applyAnimation(model, animationId)
+    local animController = model:FindFirstChildOfClass("AnimationController")
+    if animController then
+        local anim = Instance.new("Animation")
+        anim.AnimationId = "rbxassetid://" .. animationId
+        local track = animController:LoadAnimation(anim)
+        track.Looped = true
+        track:Play()
+        animationTracks[model] = track
+    end
+end
+
+local function stopAllAnimations()
+    for model, track in pairs(animationTracks) do
+        track:Stop()
+        animationTracks[model] = nil
+    end
+end
+
+local function refreshAnimations()
+    stopAllAnimations()
+    if isToggleOn and activeAnimationId then
+        for _, model in pairs(firstPersonModel:GetChildren()) do
+            if model:IsA("Model") then
+                applyAnimation(model, activeAnimationId)
+            end
+        end
+    end
+end
+
+local function toggleAnimation(value, animationId)
+    isToggleOn = value
+    if value then
+        activeAnimationId = animationId
+        refreshAnimations()
+    else
+        stopAllAnimations()
+        activeAnimationId = nil
+    end
+end
+
+ViewmodelsSections.Anims:AddToggle({
+    enabled = true,
+    text = "Rifle inspect",
+    flag = "RifleInspect",
+    risky = false,
+    callback = function(value)
+        toggleAnimation(value, "13010893629")
+    end
+})
+
+ViewmodelsSections.Anims:AddToggle({
+    enabled = true,
+    text = "Sniper inspect",
+    flag = "SniperInspect",
+    risky = false,
+    callback = function(value)
+        toggleAnimation(value, "13269934368")
+    end
+})
+
+firstPersonModel.ChildAdded:Connect(function(child)
+    if child:IsA("Model") then
+        if isToggleOn and activeAnimationId then
+            applyAnimation(child, activeAnimationId)
+        end
+    end
+end)
+
+firstPersonModel.ChildRemoved:Connect(function(child)
+    animationTracks[child] = nil
+    refreshAnimations()
+end)
+
+local LightingSections = { 
+	World = tabs.Tab7:AddSection("World", 1),
+}
+
+
+local Lighting = game:GetService("Lighting")
+
+LightingSections.World:AddToggle({
+	enabled = true,
+	text = "Noskybox",
+	flag = "Noskybox",
+	risky = false,
+	callback = function(value)
+		if value then
+			for _, obj in pairs(Lighting:GetChildren()) do
+				if obj:IsA("Sky") then
+					obj:Destroy()
+				end
+			end
+			Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
+			Lighting.EnvironmentDiffuseScale = 0
+			Lighting.EnvironmentSpecularScale = 0
+		end
+	end
+})
+
+local Lighting = game:GetService("Lighting")
+local skyboxEnabled = false
+local currentSkybox
+
+local function setSkybox()
+    if currentSkybox then
+        currentSkybox:Destroy()
+    end
+    if not skyboxEnabled then return end
+
+    local Sky = Instance.new("Sky")
+    Sky.MoonTextureId = "rbxassetid://15912530252"
+    Sky.SkyboxBk = "rbxassetid://15962101128"
+    Sky.SkyboxDn = "rbxassetid://15970246218"
+    Sky.SkyboxFt = "rbxassetid://15962101128"
+    Sky.SkyboxLf = "rbxassetid://15962101128"
+    Sky.SkyboxRt = "rbxassetid://15962101128"
+    Sky.SkyboxUp = "rbxassetid://15962901054"
+    Sky.Parent = Lighting
+
+    currentSkybox = Sky
+end
+
+LightingSections.World:AddToggle({
+    enabled = true,
+    text = "SpongeBob Skybox",
+    flag = "Skybox",
+    risky = false,
+    callback = function(value)
+        skyboxEnabled = value
+        setSkybox()
+    end
+})
+
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+
+local hue = 0
+local RainbowEnabled = false
+
+local defaultAmbient = Lighting.Ambient
+local defaultOutdoor = Lighting.OutdoorAmbient
+local defaultTop = Lighting.ColorShift_Top
+local defaultBottom = Lighting.ColorShift_Bottom
+local defaultFog = Lighting.FogColor
+
+LightingSections.World:AddToggle({
+	enabled = true,
+	text = "Rainbow Lighting",
+	flag = "RainbowLighting",
+	risky = false,
+	callback = function(value)
+		RainbowEnabled = value
+		if not value then
+			Lighting.Ambient = defaultAmbient
+			Lighting.OutdoorAmbient = defaultOutdoor
+			Lighting.ColorShift_Top = defaultTop
+			Lighting.ColorShift_Bottom = defaultBottom
+			Lighting.FogColor = defaultFog
+		end
+	end
+})
+
+RunService.RenderStepped:Connect(function(deltaTime)
+	if RainbowEnabled then
+		hue = hue + deltaTime * 0.1
+		if hue > 1 then
+			hue = 0
+		end
+		local rainbowColor = Color3.fromHSV(hue, 1, 1)
+		Lighting.Ambient = rainbowColor
+		Lighting.OutdoorAmbient = rainbowColor
+		Lighting.ColorShift_Top = rainbowColor
+		Lighting.ColorShift_Bottom = rainbowColor
+		Lighting.FogColor = rainbowColor
+	end
+end)
+
+library:SendNotification("Welcome to Ooze.cc", 5, Color3.new(255, 0, 0))
